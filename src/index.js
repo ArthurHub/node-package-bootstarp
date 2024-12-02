@@ -1,5 +1,3 @@
-'use strict';
-
 // Therefore those skilled at the unorthodox
 // are infinite as heaven and earth,
 // inexhaustible as the great rivers.
@@ -62,13 +60,9 @@ function getNodeModules(buildDir) {
   fs.writeFileSync(packageJsonPath, JSON.stringify(nodeModulesPackageJson, null, 2));
 
   console.debug(`Run npm install..`);
-  child_process.execFileSync(
-    'npm.cmd',
-    ['install', buildDir, '--prefix', buildDir, '--no-bin-links'],
-    {
-      shell: true,
-    },
-  );
+  child_process.execFileSync('npm.cmd', ['install', buildDir, '--prefix', buildDir, '--no-bin-links'], {
+    shell: true,
+  });
 
   console.debug('Clean-lean node_modules..');
   const [rmFoldersCount, rmFilesCount] = deleteNonProdNodeModulesFiles(
@@ -109,10 +103,7 @@ function deleteNonProdNodeModulesFiles(folder, namesToDelete, extensionsToDelete
       if (file.isSymbolicLink()) {
         fs.unlinkSync(fullPath);
         rmFilesCount++;
-      } else if (
-        namesToDelete.includes(lcName) ||
-        extensionsToDelete.includes(path.extname(lcName))
-      ) {
+      } else if (namesToDelete.includes(lcName) || extensionsToDelete.includes(path.extname(lcName))) {
         if (file.isDirectory()) {
           fs.rmSync(fullPath, { recursive: true, force: true });
           rmFoldersCount++;

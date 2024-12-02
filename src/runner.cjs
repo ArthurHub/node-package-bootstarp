@@ -1,5 +1,3 @@
-'use strict';
-
 // Therefore those skilled at the unorthodox
 // are infinite as heaven and earth,
 // inexhaustible as the great rivers.
@@ -12,6 +10,8 @@
 // - Sun Tsu, The Art of War.
 //
 // ArthurHub, 2024
+
+'use strict';
 
 const path = require('path');
 const fs = require('fs');
