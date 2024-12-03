@@ -19,11 +19,14 @@ const os = require('os');
 const child_process = require('child_process');
 const decompress = require('decompress');
 
-async function main() {
+/**
+ * TODO: add full documentation on what bootstrap does and how it is executed
+ */
+async function bootstrap() {
   console.info(`node-runner for ???`);
 
   // create temp directory to unzip the bundle
-  const tmpFolder = path.join(os.tmpdir(), 'node-runner');
+  const tmpFolder = path.join(os.tmpdir(), 'node-package-bootstrap');
   if (!fs.existsSync(tmpFolder)) {
     fs.mkdirSync(tmpFolder, { recursive: true });
   }
@@ -33,7 +36,7 @@ async function main() {
   const nodeExec = path.join(tmpFolder, 'node.exe');
   if (!fs.existsSync(nodeExec)) {
     console.info(`extracting node.exe`);
-    await decompress(path.join(__dirname, 'build/assets/node.zip'), tmpFolder);
+    await decompress(path.join(__dirname, `node.zip`), tmpFolder);
   } else {
     console.debug(`using existing node.exe`);
   }
@@ -42,14 +45,14 @@ async function main() {
   const nodeModules = path.join(tmpFolder, 'node_modules');
   if (!fs.existsSync(nodeModules)) {
     console.info(`extracting node_modules`);
-    await decompress(path.join(__dirname, 'build/assets/node_modules.zip'), nodeModules);
+    await decompress(path.join(__dirname, 'node_modules.zip'), nodeModules);
   } else {
     console.debug(`using existing node_modules`);
   }
 
   // always copy bundle js file
   console.debug(`Copying bundle.mjs`);
-  await fs.promises.copyFile(path.join(__dirname, 'build/assets/bundle.mjs'), path.join(tmpFolder, 'bundle.mjs'));
+  await fs.promises.copyFile(path.join(__dirname, 'bundle.mjs'), path.join(tmpFolder, 'bundle.mjs'));
 
   // run the bundle with the node inside of it in the temp directory
   const node = path.join(tmpFolder, 'node.exe');
@@ -63,4 +66,4 @@ async function main() {
   child.unref();
 }
 
-main();
+bootstrap();
