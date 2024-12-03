@@ -19,6 +19,8 @@ const os = require('os');
 const child_process = require('child_process');
 const decompress = require('decompress');
 
+const BASE_FOLDER = 'node-pkg-bootstrap';
+
 /**
  * TODO: add full documentation on what bootstrap does and how it is executed
  */
@@ -26,7 +28,7 @@ async function bootstrap() {
   console.info(`node-runner for ???`);
 
   // create temp directory to unzip the bundle
-  const tmpFolder = path.join(os.tmpdir(), 'node-package-bootstrap');
+  const tmpFolder = path.join(os.tmpdir(), BASE_FOLDER);
   if (!fs.existsSync(tmpFolder)) {
     fs.mkdirSync(tmpFolder, { recursive: true });
   }

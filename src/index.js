@@ -14,7 +14,7 @@
 // ArthurHub, 2024
 
 import * as fs from 'fs';
-import { join, dirname } from 'path';
+import path from 'path';
 import { fileURLToPath } from 'url';
 import { Command } from 'commander';
 import { exec } from 'pkg';
@@ -22,7 +22,7 @@ import { getNodeExecutable } from './node-exec-handler.js';
 import { getNodeModules } from './node-deps-handler.js';
 import { archiveAssets } from './assets-handler.js';
 
-export const BASE_FOLDER = '.node-pkg-boot-cache';
+const PACK_FOLDER = '.node-pkg-exec';
 
 async function main() {
   const program = new Command();
@@ -50,9 +50,9 @@ async function run(name, appPath, outputFolder, target, dependencies) {
 
     getNodeExecutable(baseFolder);
 
-    getNodeModules(baseFolder);
+    const appNodeModulesFolder = getNodeModules(name, baseFolder);
 
-    await archiveAssets(baseFolder, appPath);
+    await archiveAssets(baseFolder, appNodeModulesFolder, appPath);
 
     await createNodeExecutable(baseFolder, name, outputFolder, target);
   } catch (error) {
@@ -61,26 +61,25 @@ async function run(name, appPath, outputFolder, target, dependencies) {
 }
 
 function createFolders(outputFolder) {
-  const baseFolder = BASE_FOLDER;
-  if (!fs.existsSync(baseFolder)) {
-    fs.mkdirSync(baseFolder, true);
+  if (!fs.existsSync(PACK_FOLDER)) {
+    fs.mkdirSync(PACK_FOLDER, { recursive: true });
   }
   if (!fs.existsSync(outputFolder)) {
-    fs.mkdirSync(outputFolder, true);
+    fs.mkdirSync(outputFolder, { recursive: true });
   }
-  return baseFolder;
+  return PACK_FOLDER;
 }
 
 async function createNodeExecutable(baseFolder, name, outputFolder, target) {
   console.debug(`Create node executable package...`);
 
   const bootstrapFileName = 'bootstrap.cjs';
-  const bootstrapSrc = join(dirname(fileURLToPath(import.meta.url)), bootstrapFileName);
-  const bootstrap = join(baseFolder, bootstrapFileName);
+  const bootstrapSrc = path.join(path.dirname(fileURLToPath(import.meta.url)), bootstrapFileName);
+  const bootstrap = path.join(baseFolder, bootstrapFileName);
   fs.copyFileSync(bootstrapSrc, bootstrap);
 
   console.debug(`exec pkg..`);
-  const outputFile = join(outputFolder, name);
+  const outputFile = path.join(outputFolder, name);
   await exec([bootstrap, '--target', target, '--output', outputFile]);
 }
 

@@ -15,12 +15,12 @@ import * as fs from 'fs';
 import { basename, join } from 'path';
 import archiver from 'archiver';
 
-export async function archiveAssets(baseFolder, appPath) {
+export async function archiveAssets(baseFolder, appNodeModulesFolder, appPath) {
   console.debug('Archive node executable asset..');
   await archiveNodeExecutable(baseFolder);
 
   console.debug('Archive node modules asset..');
-  await archiveNodeModules(baseFolder);
+  await archiveNodeModules(baseFolder, appNodeModulesFolder);
 
   console.debug('Copy bundle asset..');
   const appName = basename(appPath);
@@ -38,13 +38,13 @@ async function archiveNodeExecutable(baseFolder) {
   await archive.finalize();
 }
 
-async function archiveNodeModules(baseFolder) {
+async function archiveNodeModules(baseFolder, appNodeModulesFolder) {
   const output = fs.createWriteStream(join(baseFolder, 'node_modules.zip'));
   const archive = archiver('zip', {
     zlib: { level: 9 },
   });
   archive.pipe(output);
 
-  archive.directory(join(baseFolder, 'node_modules'), false);
+  archive.directory(appNodeModulesFolder, false);
   await archive.finalize();
 }

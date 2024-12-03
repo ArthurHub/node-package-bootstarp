@@ -1,9 +1,9 @@
 {
-  "name": "node-package-bootstrap",
+  "name": "node-package-executable",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "pkg-bootstrap": "./src/index.js"
+    "pack-exec": "./src/index.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -12,7 +12,7 @@
     "pkg": "^5.8.1"
   },
   "scripts": {
-    "clean": "rm -rf build/ dist/",
+    "clean": "rm -rf .node-pkg-exec/ dist/",
     "pack": "node index.js"
   }
 }

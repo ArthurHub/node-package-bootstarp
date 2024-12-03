@@ -12,13 +12,13 @@
 // ArthurHub, 2024
 
 import * as fs from 'fs';
-import { join } from 'path';
+import path from 'path';
 
-export function getNodeExecutable(baseFolder) {
-  const nodeExec = join(baseFolder, 'node.exe');
+export function getNodeExecutable(workFolder) {
+  const nodeExec = path.join(workFolder, 'node.exe');
   if (!fs.existsSync(nodeExec)) {
     const nodeExec = 'C:\\Program Files\\nodejs\\node.exe';
     console.debug(`Get node executable from "${nodeExec}"`);
-    fs.copyFileSync(nodeExec, join(baseFolder, 'node.exe'));
+    fs.copyFileSync(nodeExec, path.join(workFolder, 'node.exe'));
   }
 }

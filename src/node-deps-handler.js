@@ -12,12 +12,16 @@
 // ArthurHub, 2024
 
 import * as fs from 'fs';
-import { join, extname } from 'path';
+import path from 'path';
 import { execFileSync } from 'child_process';
 
-export function getNodeModules(baseFolder) {
+export function getNodeModules(name, baseFolder) {
+  const workFolder = path.join(baseFolder, 'app_node_modules');
+  if (!fs.existsSync(workFolder)) {
+    fs.mkdirSync(workFolder, { recursive: true });
+  }
   const packageJson = {
-    name: 'temp',
+    name: `${name}-node-modules`,
     dependencies: {
       pino: '^9.5.0',
       trash: '^6.0.0',
@@ -26,16 +30,17 @@ export function getNodeModules(baseFolder) {
     },
   };
   console.debug(`Write package.json..`);
-  fs.writeFileSync(join(baseFolder, 'package.json'), JSON.stringify(packageJson, null, 2));
+  fs.writeFileSync(path.join(workFolder, 'package.json'), JSON.stringify(packageJson, null, 2));
 
   console.debug(`Run npm install..`);
-  execFileSync('npm.cmd', ['install', baseFolder, '--prefix', baseFolder, '--no-bin-links'], {
+  execFileSync('npm.cmd', ['install', '.', '--no-bin-links'], {
+    cwd: workFolder,
     shell: true,
   });
 
   console.debug('Clean-lean node_modules..');
   const [rmFoldersCount, rmFilesCount] = deleteNonProdNodeModulesFiles(
-    join(baseFolder, 'node_modules'),
+    path.join(workFolder, 'node_modules'),
     [
       'tsconfig.json',
       'license',
@@ -59,6 +64,8 @@ export function getNodeModules(baseFolder) {
     ['.md', '.ts', '.png', '.yaml', '.yml', '.map', '.cmd'],
   );
   console.debug(`Removed ${rmFoldersCount} folders and ${rmFilesCount} files`);
+
+  return path.join(workFolder, 'node_modules');
 }
 
 function deleteNonProdNodeModulesFiles(folder, namesToDelete, extensionsToDelete) {
@@ -67,12 +74,12 @@ function deleteNonProdNodeModulesFiles(folder, namesToDelete, extensionsToDelete
     let rmFilesCount = 0;
     const files = fs.readdirSync(folder, { withFileTypes: true });
     for (const file of files) {
-      const fullPath = join(folder, file.name);
+      const fullPath = path.join(folder, file.name);
       const lcName = file.name.toLowerCase();
       if (file.isSymbolicLink()) {
         fs.unlinkSync(fullPath);
         rmFilesCount++;
-      } else if (namesToDelete.includes(lcName) || extensionsToDelete.includes(extname(lcName))) {
+      } else if (namesToDelete.includes(lcName) || extensionsToDelete.includes(path.extname(lcName))) {
         if (file.isDirectory()) {
           fs.rmSync(fullPath, { recursive: true, force: true });
           rmFoldersCount++;
