@@ -1,18 +1,20 @@
 {
-  "name": "node-package-executable",
+  "name": "single-executable-bootstrap",
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "pack-exec": "./src/index.js"
+    "seb": "./src/index.js"
   },
   "dependencies": {
-    "archiver": "^7.0.1",
     "commander": "^12.1.0",
-    "decompress": "^4.2.1",
-    "@yao-pkg/pkg": "^6.1.1"
+    "decompress": "^4.2.1"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.1.1",
+    "archiver": "^7.0.1"
   },
   "scripts": {
-    "clean": "rm -rf .node-pkg-exec/ dist/",
+    "clean": "rm -rf .seb-cache/ dist/",
     "pack": "node index.js"
   }
 }

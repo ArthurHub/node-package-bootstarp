@@ -17,12 +17,12 @@ import * as fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Command } from 'commander';
-import { exec } from 'pkg';
+import { exec } from '@yao-pkg/pkg';
 import { getNodeExecutable } from './node-exec-handler.js';
 import { getNodeModules } from './node-deps-handler.js';
 import { archiveAssets } from './assets-handler.js';
 
-const PACK_FOLDER = '.node-pkg-exec-cache';
+const PACK_FOLDER = '.seb-cache';
 
 async function main() {
   const program = new Command();
