@@ -9,7 +9,7 @@
     "archiver": "^7.0.1",
     "commander": "^12.1.0",
     "decompress": "^4.2.1",
-    "pkg": "^5.8.1"
+    "@yao-pkg/pkg": "^6.1.1"
   },
   "scripts": {
     "clean": "rm -rf .node-pkg-exec/ dist/",
