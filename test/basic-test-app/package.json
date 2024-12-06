@@ -1,0 +1,17 @@
+{
+  "name": "basic-test-app",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/app.js",
+  "dependencies": {
+    "picocolors": "^1.1.1",
+    "progress": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "eslint": "^9.16.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

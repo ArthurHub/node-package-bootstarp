@@ -2,6 +2,12 @@
 node_modules/
 npm-debug.log*
 
+# build
+tsconfig.tsbuildinfo
+
+# cache
+.seb-cache
+
 # Logs
 logs
 *.log

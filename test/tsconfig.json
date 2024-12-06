@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig-test-base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "./"
+  },
+  "references": [
+    {
+      "path": "../"
+    }
+  ]
+}

@@ -13,12 +13,13 @@
 
 import * as fs from 'fs';
 import path from 'path';
+import { logger } from './log.js';
 
-export function getNodeExecutable(workFolder) {
+export function getNodeExecutable(workFolder: string): void {
   const nodeExec = path.join(workFolder, 'node.exe');
   if (!fs.existsSync(nodeExec)) {
-    const nodeExec = 'C:\\Program Files\\nodejs\\node.exe';
-    console.debug(`Get node executable from "${nodeExec}"`);
-    fs.copyFileSync(nodeExec, path.join(workFolder, 'node.exe'));
+    const defaultNodeExec = 'C:\\Program Files\\nodejs\\node.exe';
+    logger.info(`Get node executable from "${defaultNodeExec}"`);
+    fs.copyFileSync(defaultNodeExec, nodeExec);
   }
 }

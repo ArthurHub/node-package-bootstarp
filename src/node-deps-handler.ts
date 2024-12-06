@@ -14,12 +14,15 @@
 import * as fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
+import { logger } from './log.js';
 
-export function getNodeModules(name, baseFolder) {
+export function getNodeModules(name: string, baseFolder: string): string {
   const workFolder = path.join(baseFolder, 'app_node_modules');
   if (!fs.existsSync(workFolder)) {
     fs.mkdirSync(workFolder, { recursive: true });
   }
+
+  // TODO: use npm to get top-level dependencies: "npm ls --omit=dev --omit=optional --no-peer --depth=0 --json"
   const packageJson = {
     name: `${name}-node-modules`,
     dependencies: {
@@ -29,16 +32,16 @@ export function getNodeModules(name, baseFolder) {
       'exiftool-vendored': '^29.0.0',
     },
   };
-  console.debug(`Write package.json..`);
+  logger.debug(`Write package.json..`);
   fs.writeFileSync(path.join(workFolder, 'package.json'), JSON.stringify(packageJson, null, 2));
 
-  console.debug(`Run npm install..`);
+  logger.debug(`Run npm install..`);
   execFileSync('npm.cmd', ['install', '.', '--no-bin-links'], {
     cwd: workFolder,
     shell: true,
   });
 
-  console.debug('Clean-lean node_modules..');
+  logger.debug('Clean-lean node_modules..');
   const [rmFoldersCount, rmFilesCount] = deleteNonProdNodeModulesFiles(
     path.join(workFolder, 'node_modules'),
     [
@@ -63,12 +66,16 @@ export function getNodeModules(name, baseFolder) {
     ],
     ['.md', '.ts', '.png', '.yaml', '.yml', '.map', '.cmd'],
   );
-  console.debug(`Removed ${rmFoldersCount} folders and ${rmFilesCount} files`);
+  logger.debug(`Removed ${rmFoldersCount} folders and ${rmFilesCount} files`);
 
   return path.join(workFolder, 'node_modules');
 }
 
-function deleteNonProdNodeModulesFiles(folder, namesToDelete, extensionsToDelete) {
+function deleteNonProdNodeModulesFiles(
+  folder: string,
+  namesToDelete: string[],
+  extensionsToDelete: string[],
+): [number, number] {
   try {
     let rmFoldersCount = 0;
     let rmFilesCount = 0;
@@ -99,6 +106,7 @@ function deleteNonProdNodeModulesFiles(folder, namesToDelete, extensionsToDelete
     }
     return [rmFoldersCount, rmFilesCount];
   } catch (err) {
-    console.error(`Error processing ${folder}:`, err);
+    logger.error(err, `Error processing ${folder}:`);
+    return [0, 0];
   }
 }

@@ -1,20 +1,56 @@
 {
   "name": "single-executable-bootstrap",
+  "description": "Package a Node.js application into a single executable",
   "version": "0.1.0",
+  "author": "Arthur Teplitzki (https://github.com/ArthurHub)",
+  "contributors": [],
+  "keywords": [
+    "SEA"
+  ],
+  "license": "MIT",
   "type": "module",
   "bin": {
-    "seb": "./src/index.js"
+    "bootapp": "./dist/bin.js"
   },
   "dependencies": {
+    "@yao-pkg/pkg": "^6.1.1",
+    "archiver": "^7.0.1",
     "commander": "^12.1.0",
-    "decompress": "^4.2.1"
+    "decompress": "^4.2.1",
+    "picocolors": "^1.1.1",
+    "progress": "^2.0.3"
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^6.1.1",
-    "archiver": "^7.0.1"
+    "@release-it/conventional-changelog": "^9.0.3",
+    "@types/archiver": "^6.0.3",
+    "@types/node": "^22.10.1",
+    "@types/progress": "^2.0.7",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^9.16.0",
+    "release-it": "^17.10.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.17.0",
+    "vitest": "^2.1.8"
   },
   "scripts": {
-    "clean": "rm -rf .seb-cache/ dist/",
+    "reinstall": "rm -rf node_modules && npm install",
+    "update-modules": "ncu -u && npm install",
+    "clean": "tsc --build --clean && rm -rf .seb-cache/ dist/",
+    "build": "tsc --build",
+    "start": "node dist/index.js",
+    "bw": "tsc --build --watch",
+    "pretest": "npm run build",
+    "test": "vitest run",
+    "tw": "vitest --watch",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint",
+    "prettify": "prettier . --write",
     "pack": "node index.js"
+  },
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
   }
 }

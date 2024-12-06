@@ -1,4 +1,4 @@
-# Node Package Bootstrap
+# Node.js Single Executable Bootstrap Application
 
 node -> pkg -> bootstrap -> run
 

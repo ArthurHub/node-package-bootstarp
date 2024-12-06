@@ -14,20 +14,22 @@
 import * as fs from 'fs';
 import { basename, join } from 'path';
 import archiver from 'archiver';
+import { logger } from './log.js';
 
-export async function archiveAssets(baseFolder, appNodeModulesFolder, appPath) {
-  console.debug('Archive node executable asset..');
+export async function archiveAssets(baseFolder: string, appNodeModulesFolder: string, appPath: string): Promise<void> {
+  logger.info('Archive..');
+  logger.debug('Archive node executable asset..');
   await archiveNodeExecutable(baseFolder);
 
-  console.debug('Archive node modules asset..');
+  logger.debug('Archive node modules asset..');
   await archiveNodeModules(baseFolder, appNodeModulesFolder);
 
-  console.debug('Copy bundle asset..');
+  logger.debug('Copy bundle asset..');
   const appName = basename(appPath);
   fs.copyFileSync(appPath, join(baseFolder, appName));
 }
 
-async function archiveNodeExecutable(baseFolder) {
+async function archiveNodeExecutable(baseFolder: string): Promise<void> {
   const output = fs.createWriteStream(join(baseFolder, 'node.zip'));
   const archive = archiver('zip', {
     zlib: { level: 9 },
@@ -38,7 +40,7 @@ async function archiveNodeExecutable(baseFolder) {
   await archive.finalize();
 }
 
-async function archiveNodeModules(baseFolder, appNodeModulesFolder) {
+async function archiveNodeModules(baseFolder: string, appNodeModulesFolder: string): Promise<void> {
   const output = fs.createWriteStream(join(baseFolder, 'node_modules.zip'));
   const archive = archiver('zip', {
     zlib: { level: 9 },
