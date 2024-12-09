@@ -15,16 +15,17 @@ import * as fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { logger } from './log.js';
+import type { Config } from './config.js';
 
-export function getNodeModules(name: string, baseFolder: string): string {
-  const workFolder = path.join(baseFolder, 'app_node_modules');
+export function getNodeModules(config: Config): void {
+  const workFolder = config.appNodeModulesStagingFolder;
   if (!fs.existsSync(workFolder)) {
     fs.mkdirSync(workFolder, { recursive: true });
   }
 
   // TODO: use npm to get top-level dependencies: "npm ls --omit=dev --omit=optional --no-peer --depth=0 --json"
   const packageJson = {
-    name: `${name}-node-modules`,
+    name: `${config.appName}-node-modules`,
     dependencies: {
       pino: '^9.5.0',
       trash: '^6.0.0',
@@ -67,8 +68,6 @@ export function getNodeModules(name: string, baseFolder: string): string {
     ['.md', '.ts', '.png', '.yaml', '.yml', '.map', '.cmd'],
   );
   logger.debug(`Removed ${rmFoldersCount} folders and ${rmFilesCount} files`);
-
-  return path.join(workFolder, 'node_modules');
 }
 
 function deleteNonProdNodeModulesFiles(

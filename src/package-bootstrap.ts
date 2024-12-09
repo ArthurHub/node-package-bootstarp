@@ -16,21 +16,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { exec } from '@yao-pkg/pkg';
 import { logger } from './log.js';
+import type { Config } from './config.js';
 
-export async function pkgBootstrapExecutable(
-  baseFolder: string,
-  name: string,
-  outputFolder: string,
-  target: string,
-): Promise<void> {
+export async function pkgBootstrapExecutable(config: Config): Promise<void> {
   logger.debug(`Create node executable package...`);
 
   const bootstrapFileName = 'bootstrap.cjs';
   const bootstrapSrc = path.join(path.dirname(fileURLToPath(import.meta.url)), bootstrapFileName);
-  const bootstrap = path.join(baseFolder, bootstrapFileName);
+  const bootstrap = path.join(config.stagingFolder, bootstrapFileName);
   fs.copyFileSync(bootstrapSrc, bootstrap);
 
   logger.debug(`exec pkg..`);
-  const outputFile = path.join(outputFolder, name);
-  await exec([bootstrap, '--target', target, '--output', outputFile]);
+  await exec([bootstrap, '--target', config.targetPlatform, '--output', config.outputFilePath]);
 }

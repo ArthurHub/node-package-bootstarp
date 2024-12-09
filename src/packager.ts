@@ -11,45 +11,25 @@
 //
 // ArthurHub, 2024
 
-import * as fs from 'fs';
 import { getNodeExecutable } from './node-exec-handler.js';
 import { getNodeModules } from './node-deps-handler.js';
 import { archiveAssets } from './assets-handler.js';
 import { logger } from './log.js';
 import { pkgBootstrapExecutable } from './package-bootstrap.js';
+import type { Config } from './config.js';
 
-const PACK_FOLDER = '.seb-cache';
-
-export async function pack(
-  name: string,
-  appPath: string,
-  outputFolder: string,
-  target: string,
-  dependencies: string[],
-): Promise<void> {
+export async function pack(config: Config): Promise<void> {
   try {
-    logger.info(`Package node application "${name}" from "${appPath}"...`);
+    logger.info(`Package node application "${config.appName}" from "${config.appPackageJsonPath}"...`);
 
-    const baseFolder = createFolders(outputFolder);
+    getNodeExecutable(config);
 
-    getNodeExecutable(baseFolder);
+    getNodeModules(config);
 
-    const appNodeModulesFolder = getNodeModules(name, baseFolder);
+    await archiveAssets(config);
 
-    await archiveAssets(baseFolder, appNodeModulesFolder, appPath);
-
-    await pkgBootstrapExecutable(baseFolder, name, outputFolder, target);
+    await pkgBootstrapExecutable(config);
   } catch (error) {
     logger.error(error, `Failed to create executable package`);
   }
-}
-
-function createFolders(outputFolder: string): string {
-  if (!fs.existsSync(PACK_FOLDER)) {
-    fs.mkdirSync(PACK_FOLDER, { recursive: true });
-  }
-  if (!fs.existsSync(outputFolder)) {
-    fs.mkdirSync(outputFolder, { recursive: true });
-  }
-  return PACK_FOLDER;
 }

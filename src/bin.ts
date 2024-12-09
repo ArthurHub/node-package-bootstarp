@@ -15,8 +15,9 @@
 
 import * as fs from 'fs';
 import { Command } from 'commander';
-import { logger, pc } from './log.js';
+import { logger } from './log.js';
 import { pack } from './packager.js';
+import { configure, type CLIOptions } from './config.js';
 
 async function main(): Promise<void> {
   try {
@@ -25,15 +26,16 @@ async function main(): Promise<void> {
 
     const program = new Command();
     program
-      .name('bootapp')
+      .name('bootpack')
       .description(
-        'CLI to package a Node.js application into a single executable to run on any ' +
+        'CLI to package a Node.js application into a single executable bootstrapped app to run on any ' +
           'device without pre-requisites, dependencies, or environment compatibility issues.',
       )
       .version(version);
     await program
       .arguments('<package-path> <sources-glob>')
-      .option('-d, --debug', 'Show debug information')
+      .option('-d, --debug', 'Show debug information', false)
+      .option('-c, --clean', 'Clean staging/cache folder before and after packaging', false)
       .option('-n, --name <name>', 'The name of the executable', './')
       .option('-o, --output <output>', 'Output directory or file name for the single executable', './')
       .option('-t, --target <target>', 'Target platforms for the package (windows/macos/linux)', 'node20-win-x64')
@@ -43,30 +45,10 @@ async function main(): Promise<void> {
         '--dev-override [dependencies...]',
         'Override dependencies to ONLY use those dependencies in the executable package',
       )
-      .action(
-        async (
-          packagePath: string,
-          sourcesGlob: string,
-          options: {
-            output: string;
-            target: string;
-            add: string[];
-            remove: string[];
-            override: string[];
-            debug: boolean;
-          },
-        ) => {
-          if (options.debug) {
-            logger.enableDebug();
-            logger.debug(`Config:
-              ${pc.yellow('package:')} ${packagePath}
-              ${pc.yellow('sources:')} ${sourcesGlob}
-              ${pc.yellow('options:')} ${logger.colorizeJson(options)}
-              `);
-          }
-          await pack(packagePath, sourcesGlob, options.output, options.target, []);
-        },
-      )
+      .action(async (packagePath: string, sourcesGlob: string, options: CLIOptions) => {
+        const config = await configure(packagePath, sourcesGlob, options);
+        await pack(config);
+      })
       .parseAsync();
   } catch (error) {
     logger.error(error, `Fatal error in main`);

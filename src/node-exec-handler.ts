@@ -14,9 +14,10 @@
 import * as fs from 'fs';
 import path from 'path';
 import { logger } from './log.js';
+import type { Config } from './config.js';
 
-export function getNodeExecutable(workFolder: string): void {
-  const nodeExec = path.join(workFolder, 'node.exe');
+export function getNodeExecutable(config: Config): void {
+  const nodeExec = path.join(config.stagingFolder, 'node.exe');
   if (!fs.existsSync(nodeExec)) {
     const defaultNodeExec = 'C:\\Program Files\\nodejs\\node.exe';
     logger.info(`Get node executable from "${defaultNodeExec}"`);

@@ -15,18 +15,20 @@ import * as fs from 'fs';
 import { basename, join } from 'path';
 import archiver from 'archiver';
 import { logger } from './log.js';
+import type { Config } from './config.js';
 
-export async function archiveAssets(baseFolder: string, appNodeModulesFolder: string, appPath: string): Promise<void> {
+export async function archiveAssets(config: Config): Promise<void> {
   logger.info('Archive..');
   logger.debug('Archive node executable asset..');
-  await archiveNodeExecutable(baseFolder);
+  await archiveNodeExecutable(config.stagingFolder);
 
   logger.debug('Archive node modules asset..');
-  await archiveNodeModules(baseFolder, appNodeModulesFolder);
+  await archiveNodeModules(config.stagingFolder, config.appNodeModulesInnerStagingFolder);
 
   logger.debug('Copy bundle asset..');
-  const appName = basename(appPath);
-  fs.copyFileSync(appPath, join(baseFolder, appName));
+  // TODO: handle app sources
+  // const appName = basename(appPath);
+  // fs.copyFileSync(appPath, join(baseFolder, appName));
 }
 
 async function archiveNodeExecutable(baseFolder: string): Promise<void> {
