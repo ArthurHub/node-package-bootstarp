@@ -70,7 +70,7 @@ async function getTopLevelNpmModulesExternalDependencies(config: Config): Promis
   try {
     if (!packageLockFileExists) {
       // if package-lock.json doesn't exist, create it using npm
-      logger.debug('Run "npm install --package-lock-only"');
+      logger.debug('Run "npm install --package-lock-only [...]"');
       await execFileAsync(
         'npm.cmd',
         ['install', '--package-lock-only', '--omit=dev', '--omit=peer', '--omit=optional'],

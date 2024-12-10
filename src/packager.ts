@@ -11,27 +11,27 @@
 //
 // ArthurHub, 2024
 
-import { logger } from './log.js';
+import { logger, pc } from './log.js';
 import type { Config } from './config.js';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import { basename, dirname, join } from 'path';
 import archiver from 'archiver';
 import { exec } from '@yao-pkg/pkg';
-import { getNodeExecutable } from './node-exec-handler.js';
+import { stageNodeExecutable } from './node-exec-handler.js';
 import { stageAppNodeModules } from './node-deps-handler.js';
 import { stageAppSources } from './app-sources-handler.js';
 import { randomUUID } from 'crypto';
 
 export async function pack(config: Config): Promise<void> {
   try {
-    logger.info(`Package node application "${config.appName}" from "${config.appPackagePath}"...`);
-
-    logger.info('Stage node executable..');
-    getNodeExecutable(config);
+    logger.info(`Package node application "${config.appName}" from "${config.appPackagePath}"`);
 
     logger.info('Stage app sources..');
     await stageAppSources(config);
+
+    logger.info('Stage node executable..');
+    await stageNodeExecutable(config);
 
     logger.info('Stage node_modules..');
     await stageAppNodeModules(config);
@@ -42,8 +42,11 @@ export async function pack(config: Config): Promise<void> {
     logger.info('Gen metadata json assets..');
     await genMetadataJsonAsset(config);
 
-    logger.info(`Create bootstrap node executable...`);
+    logger.info(`Create bootstrap node executable..`);
     await pkgBootstrapAndAssetsIntoExecutable(config);
+
+    logger.info(pc.greenBright(`SUCCESS`));
+    await cleanStagingSafe(config);
   } catch (error) {
     logger.error(error, `Failed to package app into single executable`);
   }
@@ -87,7 +90,21 @@ export async function pkgBootstrapAndAssetsIntoExecutable(config: Config): Promi
   fs.copyFileSync(bootstrapSrc, bootstrapStage);
 
   logger.debug(`exec pkg on "${bootstrapStage}"..`);
-  await exec([bootstrapStage, '--target', config.targetPlatform, '--output', config.outputFilePath]);
+  const args = [bootstrapStage, '--target', config.targetPlatform, '--output', config.outputFilePath];
+  if (config.debugPkg) {
+    args.push('--debug');
+  }
+  await exec(args);
+}
+
+async function cleanStagingSafe(config: Config): Promise<void> {
+  try {
+    if (config.clean) {
+      await fs.promises.rmdir(config.stagingFolder, { recursive: true });
+    }
+  } catch (err) {
+    logger.warn(`Failed to clean staging folder "${config.stagingFolder}: ${err}`);
+  }
 }
 
 async function archiveFile(file: string, zipFile: string): Promise<void> {

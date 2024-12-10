@@ -1,3 +1,3 @@
-import pc from 'picocolors';
+import { log } from './helper.js';
 
-console.log(`Basic: ${pc.red('Hello')}, ${pc.blue('world!')}`);
+log();

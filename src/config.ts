@@ -17,18 +17,21 @@ import { logger, pc } from './log.js';
 import { glob } from 'glob';
 
 export interface CLIOptions {
-  debug: boolean;
-  clean: boolean;
+  sources?: string[];
+  main?: string;
+  name?: string;
   output: string;
   target: string;
-  'dep-add': string[];
-  'dep-remove': string[];
-  'dep-override': string[];
+  depAdd: string[];
+  depExclude: string[];
+  depOverride: string[];
+  debug: boolean;
+  debugPkg: boolean;
+  clean: boolean;
 }
 
 export class Config {
   constructor(
-    readonly debug: boolean,
     readonly appName: string,
     readonly appPackagePath: string,
     readonly appSources: string[],
@@ -36,15 +39,10 @@ export class Config {
     readonly stagingFolder: string,
     readonly outputFilePath: string,
     readonly targetPlatform: string,
-  ) {
-    this.appName = appName;
-    this.appPackagePath = appPackagePath;
-    this.appSources = appSources;
-    this.appMain = appMain;
-    this.stagingFolder = stagingFolder;
-    this.outputFilePath = outputFilePath;
-    this.targetPlatform = targetPlatform;
-  }
+    readonly debug: boolean,
+    readonly debugPkg: boolean,
+    readonly clean: boolean,
+  ) {}
 
   get appPackageJsonFile(): string {
     return path.join(this.appPackagePath, 'package.json');
@@ -63,51 +61,71 @@ export class Config {
   }
 }
 
-export async function configure(packagePath: string, sourcesGlob: string, options: CLIOptions): Promise<Config> {
+export async function configure(appPackage: string, options: CLIOptions): Promise<Config> {
   if (options.debug) {
     logger.enableDebug();
-    logger.debug(`CLI:
-        ${pc.yellow('package:')} ${packagePath}
-        ${pc.yellow('sources:')} ${sourcesGlob}
-        ${pc.yellow('options:')} ${logger.colorizeJson(options)}
-        `);
+    logger.debug(`CLI arguments:
+${pc.cyan('app-package:')} ${pc.green(appPackage)},
+${pc.cyan('options:')} ${logger.colorizeJson(options)}`);
   }
 
   // read the app package.json to parse some configuration info
-  const packageJsonPath = packagePath.endsWith('.json') ? packagePath : path.join(packagePath, 'package.json');
-  if (!fs.existsSync(packageJsonPath)) {
-    throw new Error(`package.json not found. Looking for: "${packageJsonPath}"`);
+  const appPackageDir = appPackage.endsWith('.json') ? path.dirname(appPackage) : appPackage;
+  const appPackageJsonFile = appPackage.endsWith('.json') ? appPackage : path.join(appPackageDir, 'package.json');
+  if (!fs.existsSync(appPackageJsonFile)) {
+    throw new Error(`package.json not found. Looking for: "${appPackageJsonFile}"`);
   }
-  const packageJson = await fs.promises.readFile(packageJsonPath, 'utf-8');
+
+  const packageJson = await fs.promises.readFile(appPackageJsonFile, 'utf-8');
   const { name, main } = JSON.parse(packageJson) as { name: string; main: string };
+  const appName = options.name ?? name;
+  const appMain = options.main ?? main;
 
   // collect the app source files from glob
-  const sources = await glob(sourcesGlob);
-  if (sources.length === 0) {
-    throw new Error(`No source files found matching the glob pattern: "${sourcesGlob}"`);
+  // if no glob was provided, use the main folder as root for all js files inside
+  let sourcesGlobs = options.sources;
+  if (!sourcesGlobs) {
+    const mainParentFolder = appMain ? path.dirname(appMain) : '';
+    sourcesGlobs = [`${appPackageDir}/${mainParentFolder}/**/*.{js,cjs,mjs,json}`];
+  }
+  logger.debug(`Sources globs: ["${sourcesGlobs.join('", "')}"]`);
+  const appSources = await glob(sourcesGlobs, { ignore: ['**/node_modules/**'] });
+  for (const source of appSources) {
+    logger.debug(`Including source file: "${source}"`);
+  }
+  if (appSources.length === 0) {
+    throw new Error(`No source files found matching the glob pattern: ["${sourcesGlobs.join('", "')}"]`);
   }
 
   // identify the app main file to run
-  const appMain = main ? path.join(packagePath, main) : sources.length === 1 ? sources[0] : undefined;
-  if (!appMain) {
-    throw new Error(
-      `No main file found in package.json and multiple source files found. Please specify the main file.`,
-    );
+  const fullAppMain = appMain ? path.join(appPackageDir, appMain) : appSources.length === 1 ? appSources[0] : undefined;
+  if (!fullAppMain) {
+    throw new Error(`Unable to identify main entrypoint file, please specify the main`);
+  }
+  if (!appSources.includes(fullAppMain)) {
+    throw new Error(`Main entry point "${fullAppMain}" was not found in sources, misconfigured main or sources glob?`);
   }
 
   // configure the name of the executable output file
-  const outputFilePath = path.join(options.output, `${name}.exe`);
+  const outputFilePath = path.join(options.output, `${appName}.exe`);
 
   const config = new Config(
-    options.debug,
-    name,
-    packagePath,
-    sources,
-    appMain,
-    '.seb-cache',
+    appName,
+    appPackageDir,
+    appSources,
+    fullAppMain,
+    '.packseb-cache',
     outputFilePath,
     options.target,
+    options.debug,
+    options.debugPkg,
+    options.clean,
   );
+
+  if (options.debug) {
+    logger.debug(`Config: ${logger.colorizeJson(config)}`);
+  }
+
   await createFolders(config, options.output, options.clean);
   return config;
 }

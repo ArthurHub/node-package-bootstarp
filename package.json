@@ -10,7 +10,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "bootapp": "./dist/bin.js"
+    "packseb": "./dist/bin.js"
   },
   "dependencies": {
     "@yao-pkg/pkg": "^6.1.1",
