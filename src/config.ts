@@ -27,22 +27,15 @@ export interface CLIOptions {
 }
 
 export class Config {
-  readonly appName: string;
-  readonly appPackagePath: string;
-  readonly appSources: string[];
-  readonly appMain: string;
-  readonly stagingFolder: string;
-  readonly outputFilePath: string;
-  readonly targetPlatform: string;
-
   constructor(
-    appName: string,
-    appPackagePath: string,
-    appSources: string[],
-    appMain: string,
-    stagingFolder: string,
-    outputFilePath: string,
-    targetPlatform: string,
+    readonly debug: boolean,
+    readonly appName: string,
+    readonly appPackagePath: string,
+    readonly appSources: string[],
+    readonly appMain: string,
+    readonly stagingFolder: string,
+    readonly outputFilePath: string,
+    readonly targetPlatform: string,
   ) {
     this.appName = appName;
     this.appPackagePath = appPackagePath;
@@ -105,7 +98,16 @@ export async function configure(packagePath: string, sourcesGlob: string, option
   // configure the name of the executable output file
   const outputFilePath = path.join(options.output, `${name}.exe`);
 
-  const config = new Config(name, packagePath, sources, appMain, '.seb-cache', outputFilePath, options.target);
+  const config = new Config(
+    options.debug,
+    name,
+    packagePath,
+    sources,
+    appMain,
+    '.seb-cache',
+    outputFilePath,
+    options.target,
+  );
   await createFolders(config, options.output, options.clean);
   return config;
 }

@@ -69,6 +69,7 @@ async function archiveAppIntoAssets(config: Config): Promise<void> {
 async function genMetadataJsonAsset(config: Config): Promise<void> {
   const metadata = {
     name: config.appName,
+    debug: config.debug,
     uuid: randomUUID(),
     main: config.appMain,
     target: config.targetPlatform,
