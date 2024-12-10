@@ -36,14 +36,14 @@ async function main(): Promise<void> {
       .arguments('<package-path> <sources-glob>')
       .option('-d, --debug', 'Show debug information', false)
       .option('-c, --clean', 'Clean staging/cache folder before and after packaging', false)
-      .option('-n, --name <name>', 'The name of the executable', './')
+      .option('-n, --name <name>', 'The name of the executable package to use instead of app name in package.json')
       .option('-o, --output <output>', 'Output directory or file name for the single executable', './')
       .option('-t, --target <target>', 'Target platforms for the package (windows/macos/linux)', 'node20-win-x64')
-      .option('--dep-add [dependencies...]', 'Dependencies to include in the executable package')
-      .option('--dep-remove [dependencies...]', 'Dependencies to exclude in the executable package')
+      .option('--dep-amend [dependencies...]', 'Dependencies to include in addition to detected in app package.json')
+      .option('--dep-exclude [dependencies...]', 'Dependencies to exclude from detected in app package.json')
       .option(
-        '--dev-override [dependencies...]',
-        'Override dependencies to ONLY use those dependencies in the executable package',
+        '--dep-override [dependencies...]',
+        'Override dependencies to ONLY use those dependencies regardless of app package.json',
       )
       .action(async (packagePath: string, sourcesGlob: string, options: CLIOptions) => {
         const config = await configure(packagePath, sourcesGlob, options);

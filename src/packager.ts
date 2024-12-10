@@ -12,21 +12,21 @@
 // ArthurHub, 2024
 
 import { getNodeExecutable } from './node-exec-handler.js';
-import { getNodeModules } from './node-deps-handler.js';
-import { archiveAssets } from './assets-handler.js';
+import { stageAppNodeModules } from './node-deps-handler.js';
+import { archiveAssets as archiveAppIntoAssets } from './assets-handler.js';
 import { logger } from './log.js';
 import { pkgBootstrapExecutable } from './package-bootstrap.js';
 import type { Config } from './config.js';
 
 export async function pack(config: Config): Promise<void> {
   try {
-    logger.info(`Package node application "${config.appName}" from "${config.appPackageJsonPath}"...`);
+    logger.info(`Package node application "${config.appName}" from "${config.appPackagePath}"...`);
 
     getNodeExecutable(config);
 
-    getNodeModules(config);
+    await stageAppNodeModules(config);
 
-    await archiveAssets(config);
+    await archiveAppIntoAssets(config);
 
     await pkgBootstrapExecutable(config);
   } catch (error) {

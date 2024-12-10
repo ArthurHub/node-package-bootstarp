@@ -28,7 +28,7 @@ export interface CLIOptions {
 
 export class Config {
   readonly appName: string;
-  readonly appPackageJsonPath: string;
+  readonly appPackagePath: string;
   readonly appSources: string[];
   readonly appMain: string;
   readonly stagingFolder: string;
@@ -37,7 +37,7 @@ export class Config {
 
   constructor(
     appName: string,
-    appPackageJsonPath: string,
+    appPackagePath: string,
     appSources: string[],
     appMain: string,
     stagingFolder: string,
@@ -45,7 +45,7 @@ export class Config {
     targetPlatform: string,
   ) {
     this.appName = appName;
-    this.appPackageJsonPath = appPackageJsonPath;
+    this.appPackagePath = appPackagePath;
     this.appSources = appSources;
     this.appMain = appMain;
     this.stagingFolder = stagingFolder;
@@ -98,24 +98,28 @@ export async function configure(packagePath: string, sourcesGlob: string, option
     );
   }
 
-  // configure the staging and output folders
-  const stagingFolder = '.seb-cache';
-  await createFolders(stagingFolder, options.output, options.clean);
-
   // configure the name of the executable output file
   const outputFilePath = path.join(options.output, `${name}.exe`);
 
-  return new Config(name, packageJsonPath, sources, appMain, stagingFolder, outputFilePath, options.target);
+  const config = new Config(name, packagePath, sources, appMain, '.seb-cache', outputFilePath, options.target);
+  await createFolders(config, options.output, options.clean);
+  return config;
 }
 
-async function createFolders(stagingFolder: string, outputFolder: string, clean: boolean): Promise<void> {
-  if (clean && fs.existsSync(stagingFolder)) {
-    await fs.promises.rm(stagingFolder, { recursive: true, force: true });
+async function createFolders(config: Config, outputFolder: string, clean: boolean): Promise<void> {
+  if (clean && fs.existsSync(config.stagingFolder)) {
+    await fs.promises.rm(config.stagingFolder, { recursive: true, force: true });
   }
-  if (!fs.existsSync(stagingFolder)) {
-    await fs.promises.mkdir(stagingFolder, { recursive: true });
+  if (!fs.existsSync(config.stagingFolder)) {
+    await fs.promises.mkdir(config.stagingFolder, { recursive: true });
   }
   if (!fs.existsSync(outputFolder)) {
     await fs.promises.mkdir(outputFolder, { recursive: true });
+  }
+  if (!fs.existsSync(config.appSourcesStagingFolder)) {
+    await fs.promises.mkdir(config.appSourcesStagingFolder, { recursive: true });
+  }
+  if (!fs.existsSync(config.appNodeModulesStagingFolder)) {
+    await fs.promises.mkdir(config.appNodeModulesStagingFolder, { recursive: true });
   }
 }

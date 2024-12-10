@@ -13,99 +13,119 @@
 
 import * as fs from 'fs';
 import path from 'path';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
 import { logger } from './log.js';
 import type { Config } from './config.js';
+import { promisify } from 'util';
+import { pruneNodeModules } from './node-deps-pruner.js';
 
-export function getNodeModules(config: Config): void {
-  const workFolder = config.appNodeModulesStagingFolder;
-  if (!fs.existsSync(workFolder)) {
-    fs.mkdirSync(workFolder, { recursive: true });
-  }
+const execFileAsync = promisify(execFile);
 
-  // TODO: use npm to get top-level dependencies: "npm ls --omit=dev --omit=optional --no-peer --depth=0 --json"
+interface NpmListOutput {
+  name: string;
+  dependencies: Record<string, Dependency>;
+}
+
+interface Dependency {
+  version: string;
+  resolved: string;
+  dependencies?: Record<string, Dependency>;
+}
+
+/**
+ * Install prod node_modules of the app in the staging folder.
+ */
+export async function stageAppNodeModules(config: Config): Promise<void> {
+  const topLevelDeps = await getTopLevelNpmModulesExternalDependencies(config);
+
   const packageJson = {
     name: `${config.appName}-node-modules`,
-    dependencies: {
-      pino: '^9.5.0',
-      trash: '^6.0.0',
-      'pino-pretty': '^12.0.0',
-      'exiftool-vendored': '^29.0.0',
-    },
+    dependencies: Object.fromEntries(topLevelDeps),
   };
-  logger.debug(`Write package.json..`);
-  fs.writeFileSync(path.join(workFolder, 'package.json'), JSON.stringify(packageJson, null, 2));
+  logger.debug(`Write "package.json": ${logger.colorizeJson(packageJson)}`);
+  await fs.promises.writeFile(
+    path.join(config.appNodeModulesStagingFolder, 'package.json'),
+    JSON.stringify(packageJson, null, 2),
+  );
 
   logger.debug(`Run npm install..`);
-  execFileSync('npm.cmd', ['install', '.', '--no-bin-links'], {
-    cwd: workFolder,
+  await execFileAsync('npm.cmd', ['install', '.', '--no-bin-links'], {
+    cwd: config.appNodeModulesStagingFolder,
     shell: true,
   });
 
   logger.debug('Clean-lean node_modules..');
-  const [rmFoldersCount, rmFilesCount] = deleteNonProdNodeModulesFiles(
-    path.join(workFolder, 'node_modules'),
-    [
-      'tsconfig.json',
-      'license',
-      'test',
-      'tests',
-      'benchmark',
-      'benchmarks',
-      'example',
-      'examples',
-      'help',
-      'man',
-      'doc',
-      'docs',
-      'types',
-      'rollup',
-      'tsconfig',
-      'tsconfigs',
-      '.github',
-      '.eslintrc',
-    ],
-    ['.md', '.ts', '.png', '.yaml', '.yml', '.map', '.cmd'],
-  );
-  logger.debug(`Removed ${rmFoldersCount} folders and ${rmFilesCount} files`);
+  await pruneNodeModules(config);
 }
 
-function deleteNonProdNodeModulesFiles(
-  folder: string,
-  namesToDelete: string[],
-  extensionsToDelete: string[],
-): [number, number] {
+/**
+ * Use "npm ls" to get the top-level external dependencies of the app.
+ * i.e. ignore local dependencies (typescript projects) and dev/peer/optional dependencies.
+ * Use "package-lock.json" to query npm to make it explicit to the required package. Create (and remove)
+ * the package-lock.json file if it doesn't exist using "npm install --package-lock-only".
+ */
+async function getTopLevelNpmModulesExternalDependencies(config: Config): Promise<Map<string, string>> {
+  const packageLockFile = path.join(config.appPackagePath, 'package-lock.json');
+  const packageLockFileExists = fs.existsSync(packageLockFile);
   try {
-    let rmFoldersCount = 0;
-    let rmFilesCount = 0;
-    const files = fs.readdirSync(folder, { withFileTypes: true });
-    for (const file of files) {
-      const fullPath = path.join(folder, file.name);
-      const lcName = file.name.toLowerCase();
-      if (file.isSymbolicLink()) {
-        fs.unlinkSync(fullPath);
-        rmFilesCount++;
-      } else if (namesToDelete.includes(lcName) || extensionsToDelete.includes(path.extname(lcName))) {
-        if (file.isDirectory()) {
-          fs.rmSync(fullPath, { recursive: true, force: true });
-          rmFoldersCount++;
-        } else {
-          fs.unlinkSync(fullPath);
-          rmFilesCount++;
-        }
-      } else if (file.isDirectory()) {
-        const [recFoldersCount, recFilesCount] = deleteNonProdNodeModulesFiles(
-          fullPath,
-          namesToDelete,
-          extensionsToDelete,
-        );
-        rmFoldersCount += recFoldersCount;
-        rmFilesCount += recFilesCount;
+    if (!packageLockFileExists) {
+      // if package-lock.json doesn't exist, create it using npm
+      logger.debug('Run "npm install --package-lock-only"');
+      await execFileAsync(
+        'npm.cmd',
+        ['install', '--package-lock-only', '--omit=dev', '--omit=peer', '--omit=optional'],
+        {
+          cwd: config.appPackagePath,
+          shell: true,
+        },
+      );
+    }
+
+    // use package-lock-only to find all the prod dependencies of the app
+    logger.debug('Run "npm ls --package-lock-only [...]"');
+    const { stdout: npmLsJsonOutput } = await execFileAsync(
+      'npm.cmd',
+      ['ls', '--package-lock-only', '--omit=dev', '--omit=peer', '--omit=optional', '--depth=0', '--json', '--silent'],
+      {
+        cwd: config.appPackagePath,
+        shell: true,
+      },
+    );
+
+    const npmLs = JSON.parse(npmLsJsonOutput) as NpmListOutput;
+    const topLevelDeps = collectTopLevelExternalDependencies(npmLs.dependencies);
+
+    logger.debug('Top-level dependencies:', JSON.stringify(Array.from(topLevelDeps)));
+    return topLevelDeps;
+  } catch (error) {
+    throw new Error(`Error getting top-level dependencies`, { cause: error });
+  } finally {
+    if (!packageLockFileExists) {
+      try {
+        // remove package-lock.json if it didn't exist before
+        logger.debug('Remove package-lock.json');
+        await fs.promises.rm(packageLockFile, { force: true });
+      } catch (error) {
+        logger.warn(`Error removing package-lock.json: ${error}`);
       }
     }
-    return [rmFoldersCount, rmFilesCount];
-  } catch (err) {
-    logger.error(err, `Error processing ${folder}:`);
-    return [0, 0];
   }
+}
+
+/**
+ * Collect all non-local dependencies and return map of dependency name and version
+ */
+function collectTopLevelExternalDependencies(dependencies: Record<string, Dependency>): Map<string, string> {
+  const collectedDeps = new Map<string, string>();
+  for (const [name, dependency] of Object.entries(dependencies)) {
+    if (!dependency.resolved.startsWith('file:') && !dependency.resolved.startsWith('link:')) {
+      collectedDeps.set(name, dependency.version);
+    }
+    if (dependency.dependencies) {
+      for (const [innerName, innerVersion] of collectTopLevelExternalDependencies(dependency.dependencies)) {
+        collectedDeps.set(innerName, innerVersion);
+      }
+    }
+  }
+  return collectedDeps;
 }
