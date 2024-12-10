@@ -31,6 +31,7 @@ const NAMES_TO_DELETE = [
   'docs',
   'types',
   'rollup',
+  'makefile',
   'tsconfig',
   'tsconfigs',
   '.github',
