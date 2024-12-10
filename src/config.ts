@@ -53,6 +53,10 @@ export class Config {
     this.targetPlatform = targetPlatform;
   }
 
+  get appPackageJsonFile(): string {
+    return path.join(this.appPackagePath, 'package.json');
+  }
+
   get appSourcesStagingFolder(): string {
     return path.join(this.stagingFolder, 'app_sources');
   }

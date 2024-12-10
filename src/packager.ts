@@ -21,6 +21,7 @@ import { exec } from '@yao-pkg/pkg';
 import { getNodeExecutable } from './node-exec-handler.js';
 import { stageAppNodeModules } from './node-deps-handler.js';
 import { stageAppSources } from './app-sources-handler.js';
+import { randomUUID } from 'crypto';
 
 export async function pack(config: Config): Promise<void> {
   try {
@@ -37,6 +38,9 @@ export async function pack(config: Config): Promise<void> {
 
     logger.info('Archive staged assets..');
     await archiveAppIntoAssets(config);
+
+    logger.info('Gen metadata json assets..');
+    await genMetadataJsonAsset(config);
 
     logger.info(`Create bootstrap node executable...`);
     await pkgBootstrapAndAssetsIntoExecutable(config);
@@ -57,6 +61,19 @@ async function archiveAppIntoAssets(config: Config): Promise<void> {
 
   logger.debug('Archive node modules asset..');
   await archiveFolder(config.appNodeModulesInnerStagingFolder, join(config.stagingFolder, 'node_modules.zip'));
+}
+
+/**
+ * Write metadata of the app for the bootstrap to read.
+ */
+async function genMetadataJsonAsset(config: Config): Promise<void> {
+  const metadata = {
+    name: config.appName,
+    uuid: randomUUID(),
+    main: config.appMain,
+    target: config.targetPlatform,
+  };
+  await fs.promises.writeFile(join(config.stagingFolder, 'metadata.json'), JSON.stringify(metadata, null, 2));
 }
 
 /**

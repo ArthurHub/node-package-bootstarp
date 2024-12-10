@@ -24,4 +24,6 @@ export async function stageAppSources(config: Config): Promise<void> {
     await fs.mkdir(path.dirname(stagedFilePath), { recursive: true });
     await fs.copyFile(srcFile, stagedFilePath);
   }
+
+  await fs.copyFile(config.appPackageJsonFile, path.join(config.appSourcesStagingFolder, config.appPackageJsonFile));
 }
