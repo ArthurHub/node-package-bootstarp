@@ -22,9 +22,9 @@ export interface CLIOptions {
   name?: string;
   output: string;
   target: string;
-  depAdd: string[];
-  depExclude: string[];
-  depOverride: string[];
+  depAdd?: string[];
+  depExclude?: string[];
+  depOverride?: string[];
   debug: boolean;
   debugPkg: boolean;
   clean: boolean;
@@ -70,14 +70,15 @@ ${pc.cyan('options:')} ${logger.colorizeJson(options)}`);
   }
 
   // read the app package.json to parse some configuration info
-  const appPackageDir = appPackage.endsWith('.json') ? path.dirname(appPackage) : appPackage;
-  const appPackageJsonFile = appPackage.endsWith('.json') ? appPackage : path.join(appPackageDir, 'package.json');
+  const containJsonInAppPackage = appPackage.toLowerCase().endsWith('.json');
+  const appPackageDir = containJsonInAppPackage ? path.dirname(appPackage) : appPackage;
+  const appPackageJsonFile = containJsonInAppPackage ? appPackage : path.join(appPackageDir, 'package.json');
   if (!fs.existsSync(appPackageJsonFile)) {
     throw new Error(`package.json not found. Looking for: "${appPackageJsonFile}"`);
   }
 
   const packageJson = await fs.promises.readFile(appPackageJsonFile, 'utf-8');
-  const { name, main } = JSON.parse(packageJson) as { name: string; main: string };
+  const { name, main } = JSON.parse(packageJson) as { name: string; main?: string };
   const appName = options.name ?? name;
   const appMain = options.main ?? main;
 
