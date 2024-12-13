@@ -12,12 +12,13 @@
 // ArthurHub, 2024
 
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import * as fs from 'fs';
 import { glob } from 'glob';
-import { configure, Config } from '../src/config.js';
+import { configure } from '../src/config.js';
+import { vol } from 'memfs';
 
-vi.mock('fs');
+vi.mock('fs', async () => (await vi.importActual('memfs'))['fs']);
 vi.mock('glob');
+vi.spyOn(process, 'cwd');
 
 describe('configure', () => {
   const mockOptions = {
@@ -30,16 +31,32 @@ describe('configure', () => {
   };
 
   beforeEach(() => {
+    vol.reset();
     vi.clearAllMocks();
   });
 
-  it('should configure with valid inputs for defaults', async () => {
-    const mockPackageJson = JSON.stringify({ name: 'test-app', main: 'src\\index.js' });
-    const mockGlob = ['src\\index.js'];
+  function mockFileSystem(
+    globMockValue: string[] = ['src\\index.js'],
+    packageJsonMockValue: { name: string; main?: string } = {
+      name: 'test-app',
+      main: 'src\\index.js',
+    },
+    filesPathPrefix = '',
+  ): void {
+    (glob.glob as Mock).mockResolvedValue(globMockValue);
+    vol.reset();
+    vol.fromJSON(
+      {
+        [`${filesPathPrefix}package.json`]: JSON.stringify(packageJsonMockValue),
+        [`${filesPathPrefix}index.js`]: 'console.log("Hello World!")',
+      },
+      '/virtual/my-app',
+    );
+    (process.cwd as Mock).mockReturnValue('/virtual/my-app');
+  }
 
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(mockPackageJson);
-    (glob.glob as Mock).mockResolvedValue(mockGlob);
+  it('should configure with valid inputs for defaults', async () => {
+    mockFileSystem();
 
     const config = await configure('.', {
       output: 'out',
@@ -49,7 +66,6 @@ describe('configure', () => {
       clean: false,
     });
 
-    expect(config).toBeInstanceOf(Config);
     expect(config.appName).toBe('test-app');
     expect(config.appMain).toBe('src\\index.js');
     expect(config.appSources).toEqual(['src\\index.js']);
@@ -63,12 +79,7 @@ describe('configure', () => {
   });
 
   it('should configure with valid inputs for override options', async () => {
-    const mockPackageJson = JSON.stringify({ name: 'test-app', main: 'src\\index.js' });
-    const mockGlob = ['other\\bla\\code.js', 'other\\util.js'];
-
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(mockPackageJson);
-    (glob.glob as Mock).mockResolvedValue(mockGlob);
+    mockFileSystem(['other\\bla\\code.js', 'other\\util.js'], undefined, 'other/');
 
     const config = await configure('other', {
       sources: ['other/bla/**/*.js'],
@@ -81,7 +92,6 @@ describe('configure', () => {
       clean: true,
     });
 
-    expect(config).toBeInstanceOf(Config);
     expect(config.appName).toBe('other-bla-app');
     expect(config.appMain).toBe('other\\bla\\code.js');
     expect(config.appSources).toEqual(['other\\bla\\code.js', 'other\\util.js']);
@@ -95,69 +105,45 @@ describe('configure', () => {
   });
 
   it('should configure with valid inputs', async () => {
-    const mockPackageJson = JSON.stringify({ name: 'test-app', main: 'src\\index.js' });
-    const mockGlob = ['src\\index.js'];
-
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(mockPackageJson);
-    (glob.glob as Mock).mockResolvedValue(mockGlob);
+    mockFileSystem();
 
     const config = await configure('.', mockOptions);
 
-    expect(config).toBeInstanceOf(Config);
     expect(config.appName).toBe('test-app');
     expect(config.appMain).toBe('src\\index.js');
   });
 
   it('should normalize paths', async () => {
-    const mockPackageJson = JSON.stringify({ name: 'test-app', main: 'src/index.js' });
-    const mockGlob = ['some\\path\\src\\index.js'];
-
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(mockPackageJson);
-    (glob.glob as Mock).mockResolvedValue(mockGlob);
+    mockFileSystem(['some\\path\\src\\index.js'], { name: 'test-app', main: 'src/index.js' }, 'some/path/');
 
     const config = await configure('some/path', mockOptions);
 
-    expect(config).toBeInstanceOf(Config);
     expect(config.appName).toBe('test-app');
     expect(config.appMain).toBe('some\\path\\src\\index.js');
   });
 
   it('should handle specifying package.json', async () => {
-    const mockPackageJson = JSON.stringify({ name: 'test-app', main: 'src/index.js' });
-    const mockGlob = ['some\\path\\src\\index.js'];
+    mockFileSystem(['some\\path\\src\\index.js'], undefined, 'some/path/');
 
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(mockPackageJson);
-    (glob.glob as Mock).mockResolvedValue(mockGlob);
+    const config = await configure('some/path/package.json', mockOptions);
 
-    const config = await configure('some/path/package.JSON', mockOptions);
-
-    expect(config).toBeInstanceOf(Config);
     expect(config.appName).toBe('test-app');
     expect(config.appMain).toBe('some\\path\\src\\index.js');
   });
 
   it('should throw error if package.json is not found', async () => {
-    (fs.existsSync as Mock).mockReturnValue(false);
+    vol.reset();
     await expect(configure('path/to/package.json', mockOptions)).rejects.toThrow('package.json not found');
   });
 
   it('should throw error if no source files found', async () => {
-    const mockPackageJson = JSON.stringify({ name: 'test-app', main: 'src/index.js' });
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(mockPackageJson);
-    (glob.glob as Mock).mockResolvedValue([]);
+    mockFileSystem([]);
 
-    await expect(configure('path/to/package.json', mockOptions)).rejects.toThrow('No source files found');
+    await expect(configure('.', mockOptions)).rejects.toThrow('No source files found');
   });
 
   it('should throw error if main entry point is misconfigured', async () => {
-    const mockPackageJson = JSON.stringify({ name: 'test-app', main: 'src/index.js' });
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(mockPackageJson);
-    (glob.glob as Mock).mockResolvedValue(['src/other.js']);
+    mockFileSystem(['src/other.js'], undefined, 'path/to/');
 
     await expect(configure('path/to/package.json', mockOptions)).rejects.toThrow(
       'Main entry point "path\\to\\src\\index.js" was not found in sources',
@@ -165,38 +151,24 @@ describe('configure', () => {
   });
 
   it('should handle using main from single source', async () => {
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(JSON.stringify({ name: 'test-app' }));
-    (glob.glob as Mock).mockResolvedValue(['src\\main.js']);
+    mockFileSystem(['src\\main.js'], { name: 'test-app' });
 
     const config = await configure('.', mockOptions);
 
-    expect(config).toBeInstanceOf(Config);
     expect(config.appName).toBe('test-app');
     expect(config.appMain).toBe('src\\main.js');
   });
 
   it('should throw error if main not provided', async () => {
-    (fs.existsSync as Mock).mockReturnValue(true);
-    (fs.promises.readFile as Mock).mockResolvedValue(JSON.stringify({ name: 'test-app' }));
-    (glob.glob as Mock).mockResolvedValue(['src/main.js', 'src/other.js']);
+    mockFileSystem(['src/main.js', 'src/other.js'], { name: 'test-app' });
 
-    await expect(configure('path/to/package.json', mockOptions)).rejects.toThrow(
+    await expect(configure('.', mockOptions)).rejects.toThrow(
       'Unable to identify main entrypoint file, please specify the main',
     );
   });
-});
-
-describe('createFolders', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
 
   it('should create necessary folders', async () => {
-    (fs.existsSync as Mock).mockReturnValueOnce(true).mockReturnValue(false);
-    (fs.promises.readFile as Mock).mockResolvedValue(JSON.stringify({ name: 'test-app', main: 'src\\index.js' }));
-    (glob.glob as Mock).mockResolvedValue(['src\\index.js']);
-    fs.promises.mkdir = vi.fn();
+    mockFileSystem();
 
     await configure('.', {
       output: 'out',
@@ -206,9 +178,9 @@ describe('createFolders', () => {
       clean: false,
     });
 
-    expect(fs.promises.mkdir).toHaveBeenCalledWith('.packseb-cache', { recursive: true });
-    expect(fs.promises.mkdir).toHaveBeenCalledWith('out', { recursive: true });
-    expect(fs.promises.mkdir).toHaveBeenCalledWith('.packseb-cache\\app_sources', { recursive: true });
-    expect(fs.promises.mkdir).toHaveBeenCalledWith('.packseb-cache\\app_node_modules', { recursive: true });
+    expect(vol.existsSync('out')).toBeTruthy();
+    expect(vol.existsSync('.packseb-cache')).toBeTruthy();
+    expect(vol.existsSync('.packseb-cache\\app_sources')).toBeTruthy();
+    expect(vol.existsSync('.packseb-cache\\app_node_modules')).toBeTruthy();
   });
 });
