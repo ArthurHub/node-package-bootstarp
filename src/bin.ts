@@ -56,6 +56,9 @@ async function main(): Promise<void> {
       .parseAsync();
   } catch (error) {
     logger.error(error, `Fatal error in main`);
+    const msg = error instanceof Error ? error.message : (error as string);
+    process.stderr.write(msg);
+    process.exit(1);
   }
 }
 
