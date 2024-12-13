@@ -45,7 +45,7 @@ export async function pack(config: Config): Promise<void> {
     logger.info(`Create bootstrap node executable..`);
     await pkgBootstrapAndAssetsIntoExecutable(config);
 
-    logger.info(pc.greenBright(`SUCCESS`));
+    logger.info(`${pc.greenBright(`SUCCESS`)} (${config.outputFilePath})`);
     await cleanStagingSafe(config);
   } catch (error) {
     logger.error(error, `Failed to package app into single executable`);
