@@ -14,7 +14,7 @@
 import * as fs from 'fs';
 import { dirname, join } from 'path';
 import type { Config } from './config.js';
-import { logger } from './log.js';
+import { log } from './log.js';
 import { execa } from 'execa';
 import { fileURLToPath } from 'url';
 
@@ -22,7 +22,7 @@ import { fileURLToPath } from 'url';
  * Stage the bootstrap js file and install it's node dependencies.
  */
 export async function stageBootstrapApp(config: Config): Promise<void> {
-  logger.debug(`Stage bootstrap js file "${config.bootstrapStageFile}"..`);
+  log.debug(`Stage bootstrap js file "${config.bootstrapStageFile}"..`);
   await fs.promises.copyFile(config.bootstrapLibFile, config.bootstrapStageFile);
 
   // get bootstrap dependencies versions
@@ -38,10 +38,10 @@ export async function stageBootstrapApp(config: Config): Promise<void> {
       decompress: bootstrapLibPackgeJson.dependencies['decompress'],
     },
   };
-  logger.debug(`Write "package.json": ${logger.colorizeJson(packageJson)}`);
+  log.debug(`Write "package.json": ${log.colorizeJson(packageJson)}`);
   await fs.promises.writeFile(join(config.bootstrapStageFolder, 'package.json'), JSON.stringify(packageJson, null, 2));
 
-  logger.debug(`Run npm install for bootstrap app..`);
+  log.debug(`Run npm install for bootstrap app..`);
   const { stdout } = await execa('npm.cmd', ['install', '.', '--no-bin-links'], { cwd: config.bootstrapStageFolder });
-  logger.debug(stdout);
+  log.debug(stdout);
 }

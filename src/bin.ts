@@ -15,7 +15,7 @@
 
 import * as fs from 'fs';
 import { Command } from 'commander';
-import { logger } from './log.js';
+import { log } from './log.js';
 import { pack } from './packager.js';
 import { configure, type CLIOptions } from './config.js';
 
@@ -56,7 +56,7 @@ async function main(): Promise<void> {
       })
       .parseAsync();
   } catch (error) {
-    logger.error(error, `Fatal error in main`);
+    log.error(error, `Fatal error in main`);
     const msg = error instanceof Error ? error.message : (error as string);
     process.stderr.write(msg);
     process.exit(1);

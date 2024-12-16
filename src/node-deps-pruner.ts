@@ -13,7 +13,7 @@
 
 import * as fs from 'fs/promises';
 import path from 'path';
-import { logger } from './log.js';
+import { log } from './log.js';
 import type { Config } from './config.js';
 
 const NAMES_TO_DELETE = [
@@ -54,7 +54,7 @@ export async function pruneNodeModules(config: Config): Promise<void> {
     config.appNodeModulesInnerStagingFolder,
   );
 
-  logger.debug(
+  log.debug(
     `Removed ${beforeFileCount - afterFileCount} files in total of ${Math.round(
       (beforeTotalSize - afterTotalSize) / 1024,
     )} KB`,
@@ -101,6 +101,6 @@ async function deleteNonProdNodeModulesFiles(folder: string): Promise<void> {
       }
     }
   } catch (err) {
-    logger.warn(`Error deleting non-prod node_modules in "${folder}": ${err}`);
+    log.warn(`Error deleting non-prod node_modules in "${folder}": ${err}`);
   }
 }

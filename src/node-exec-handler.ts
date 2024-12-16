@@ -13,7 +13,7 @@
 
 import * as fs from 'fs';
 import path from 'path';
-import { logger } from './log.js';
+import { log } from './log.js';
 import type { Config } from './config.js';
 
 export async function stageNodeExecutable(config: Config): Promise<void> {
@@ -21,7 +21,7 @@ export async function stageNodeExecutable(config: Config): Promise<void> {
   if (!fs.existsSync(nodeExec)) {
     const defaultNodeExec = 'C:\\Program Files\\nodejs\\node.exe';
 
-    logger.debug(`Get node executable from "${defaultNodeExec}"`);
+    log.debug(`Get node executable from "${defaultNodeExec}"`);
     await fs.promises.copyFile(defaultNodeExec, nodeExec);
   }
 }

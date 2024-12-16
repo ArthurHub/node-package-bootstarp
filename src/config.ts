@@ -14,7 +14,7 @@
 import * as fs from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
-import { logger, pc } from './log.js';
+import { log, pc } from './log.js';
 import { glob } from 'glob';
 import { fileURLToPath } from 'url';
 
@@ -77,10 +77,10 @@ export class Config {
 
 export async function configure(appPackage: string, options: CLIOptions): Promise<Config> {
   if (options.debug) {
-    logger.enableDebug();
-    logger.debug(`CLI arguments:
+    log.enableDebug();
+    log.debug(`CLI arguments:
 ${pc.cyan('app-package:')} ${pc.green(appPackage)},
-${pc.cyan('options:')} ${logger.colorizeJson(options)}`);
+${pc.cyan('options:')} ${log.colorizeJson(options)}`);
   }
 
   // read the app package.json to parse some configuration info
@@ -103,10 +103,10 @@ ${pc.cyan('options:')} ${logger.colorizeJson(options)}`);
     const mainParentFolder = appMain ? path.dirname(appMain) : '';
     sourcesGlobs = [`${appPackageDir}/${mainParentFolder}/**/*.{js,cjs,mjs,json}`];
   }
-  logger.debug(`Sources globs: ["${sourcesGlobs.join('", "')}"]`);
+  log.debug(`Sources globs: ["${sourcesGlobs.join('", "')}"]`);
   const appSources = await glob(sourcesGlobs, { ignore: ['**/node_modules/**'] });
   for (const source of appSources) {
-    logger.debug(`Including source file: "${source}"`);
+    log.debug(`Including source file: "${source}"`);
   }
   if (appSources.length === 0) {
     throw new Error(`No source files found matching the glob pattern: ["${sourcesGlobs.join('", "')}"]`);
@@ -139,7 +139,7 @@ ${pc.cyan('options:')} ${logger.colorizeJson(options)}`);
   );
 
   if (options.debug) {
-    logger.debug(`Config: ${logger.colorizeJson(config)}`);
+    log.debug(`Config: ${log.colorizeJson(config)}`);
   }
 
   await createFolders(config, options.output, options.clean);

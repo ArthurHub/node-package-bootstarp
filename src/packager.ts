@@ -11,7 +11,7 @@
 //
 // ArthurHub, 2024
 
-import { logger, pc } from './log.js';
+import { log, pc } from './log.js';
 import type { Config } from './config.js';
 import * as fs from 'fs';
 import { basename, join } from 'path';
@@ -25,32 +25,32 @@ import { stageBootstrapApp } from './bootstrap-app-handler.js';
 
 export async function pack(config: Config): Promise<void> {
   try {
-    logger.info(`Package node application "${config.appName}" from "${config.appPackagePath}"`);
+    log.info(`Package node application "${config.appName}" from "${config.appPackagePath}"`);
 
-    logger.info('Stage app sources..');
+    log.info('Stage app sources..');
     await stageAppSources(config);
 
-    logger.info('Stage node executable..');
+    log.info('Stage node executable..');
     await stageNodeExecutable(config);
 
-    logger.info('Stage node_modules..');
+    log.info('Stage node_modules..');
     await stageAppNodeModules(config);
 
-    logger.info('Archive staged assets..');
+    log.info('Archive staged assets..');
     await archiveAppIntoAssets(config);
 
-    logger.info('Gen metadata json assets..');
+    log.info('Gen metadata json assets..');
     await genMetadataJsonAsset(config);
 
-    logger.info(`Stage bootstrap node app..`);
+    log.info(`Stage bootstrap node app..`);
     await stageBootstrapApp(config);
 
-    logger.info(`Create bootstrap node executable..`);
+    log.info(`Create bootstrap node executable..`);
     await pkgBootstrapAndAssetsIntoExecutable(config);
 
-    logger.info(`${pc.greenBright(`SUCCESS`)} (${config.outputFilePath})`);
+    log.info(`${pc.greenBright(`SUCCESS`)} (${config.outputFilePath})`);
   } catch (error) {
-    logger.error(error, `Failed to package app into single executable`);
+    log.error(error, `Failed to package app into single executable`);
   }
 }
 
@@ -58,13 +58,13 @@ export async function pack(config: Config): Promise<void> {
  * Create an archive for each of the 3 assets: node executable, app sources, and node_modules.
  */
 async function archiveAppIntoAssets(config: Config): Promise<void> {
-  logger.debug('Archive node executable asset..');
+  log.debug('Archive node executable asset..');
   await archiveFile(join(config.stagingFolder, 'node.exe'), join(config.bootstrapStageFolder, 'node.zip'));
 
-  logger.debug('Archive app sources asset..');
+  log.debug('Archive app sources asset..');
   await archiveFolder(config.appSourcesStagingFolder, join(config.bootstrapStageFolder, 'app_sources.zip'));
 
-  logger.debug('Archive node modules asset..');
+  log.debug('Archive node modules asset..');
   await archiveFolder(config.appNodeModulesInnerStagingFolder, join(config.bootstrapStageFolder, 'node_modules.zip'));
 }
 
@@ -86,7 +86,7 @@ async function genMetadataJsonAsset(config: Config): Promise<void> {
  * Package using "pkg" the node executable and the 3 assets into a single executable.
  */
 export async function pkgBootstrapAndAssetsIntoExecutable(config: Config): Promise<void> {
-  logger.debug(`exec pkg on "${config.bootstrapStageFile}"..`);
+  log.debug(`exec pkg on "${config.bootstrapStageFile}"..`);
   const args = [config.bootstrapStageFile, '--target', config.targetPlatform, '--output', config.outputFilePath];
   if (config.debugPkg) {
     args.push('--debug');

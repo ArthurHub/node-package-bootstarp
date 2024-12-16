@@ -13,7 +13,7 @@
 
 import * as fs from 'fs';
 import path from 'path';
-import { logger } from './log.js';
+import { log } from './log.js';
 import type { Config } from './config.js';
 import { pruneNodeModules } from './node-deps-pruner.js';
 import { execa } from 'execa';
@@ -39,19 +39,19 @@ export async function stageAppNodeModules(config: Config): Promise<void> {
     name: `${config.appName}-node-modules`,
     dependencies: Object.fromEntries(topLevelDeps),
   };
-  logger.debug(`Write "package.json": ${logger.colorizeJson(packageJson)}`);
+  log.debug(`Write "package.json": ${log.colorizeJson(packageJson)}`);
   await fs.promises.writeFile(
     path.join(config.appNodeModulesStagingFolder, 'package.json'),
     JSON.stringify(packageJson, null, 2),
   );
 
-  logger.debug(`Run npm install..`);
+  log.debug(`Run npm install..`);
   const { stdout } = await execa('npm.cmd', ['install', '.', '--no-bin-links'], {
     cwd: config.appNodeModulesStagingFolder,
   });
-  logger.debug(stdout);
+  log.debug(stdout);
 
-  logger.debug('Clean-lean node_modules..');
+  log.debug('Clean-lean node_modules..');
   await pruneNodeModules(config);
 }
 
@@ -67,7 +67,7 @@ async function getTopLevelNpmModulesExternalDependencies(config: Config): Promis
   try {
     if (!packageLockFileExists) {
       // if package-lock.json doesn't exist, create it using npm
-      logger.debug('Run "npm install --package-lock-only [...]"');
+      log.debug('Run "npm install --package-lock-only [...]"');
       const { stdout } = await execa(
         'npm.cmd',
         ['install', '--package-lock-only', '--omit=dev', '--omit=peer', '--omit=optional'],
@@ -75,11 +75,11 @@ async function getTopLevelNpmModulesExternalDependencies(config: Config): Promis
           cwd: config.appPackagePath,
         },
       );
-      logger.debug(stdout);
+      log.debug(stdout);
     }
 
     // use package-lock-only to find all the prod dependencies of the app
-    logger.debug('Run "npm ls --package-lock-only [...]"');
+    log.debug('Run "npm ls --package-lock-only [...]"');
     const { stdout: npmLsJsonOutput } = await execa(
       'npm.cmd',
       ['ls', '--package-lock-only', '--omit=dev', '--omit=peer', '--omit=optional', '--depth=0', '--json', '--silent'],
@@ -91,7 +91,7 @@ async function getTopLevelNpmModulesExternalDependencies(config: Config): Promis
     const npmLs = JSON.parse(npmLsJsonOutput) as NpmListOutput;
     const topLevelDeps = collectTopLevelExternalDependencies(npmLs.dependencies);
 
-    logger.debug('Top-level dependencies:', JSON.stringify(Array.from(topLevelDeps)));
+    log.debug('Top-level dependencies:', JSON.stringify(Array.from(topLevelDeps)));
     return topLevelDeps;
   } catch (error) {
     throw new Error(`Error getting top-level dependencies`, { cause: error });
@@ -99,10 +99,10 @@ async function getTopLevelNpmModulesExternalDependencies(config: Config): Promis
     if (!packageLockFileExists) {
       try {
         // remove package-lock.json if it didn't exist before
-        logger.debug('Remove package-lock.json');
+        log.debug('Remove package-lock.json');
         await fs.promises.rm(packageLockFile, { force: true });
       } catch (error) {
-        logger.warn(`Error removing package-lock.json: ${error}`);
+        log.warn(`Error removing package-lock.json: ${error}`);
       }
     }
   }

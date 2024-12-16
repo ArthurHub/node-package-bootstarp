@@ -11,7 +11,6 @@
 //
 // ArthurHub, 2024
 
-import Progress from 'progress';
 import picocolors from 'picocolors';
 import { WriteStream } from 'tty';
 
@@ -20,8 +19,6 @@ import { WriteStream } from 'tty';
 export const pc = picocolors.createColors(WriteStream.prototype.hasColors());
 
 class Logger {
-  private progressBar?: Progress;
-
   private debugMode = false;
 
   enableDebug(): void {
@@ -51,40 +48,6 @@ class Logger {
     const message = text instanceof Error ? this.colorizeTrace(text.stack) : text;
     console.log(`${pc.redBright('ERROR >')} ${message as string}`);
     this.lines(lines);
-  }
-
-  enableProgress(text: string): void {
-    if (!this.progressBar) throw new Error('Progress bar already enabled');
-
-    text += ' '.repeat(35 - text.length);
-    this.progressBar = new Progress(`  ${text} [:bar] :percent`, {
-      stream: process.stdout,
-      width: 20,
-      complete: '=',
-      incomplete: ' ',
-      total: 100,
-    });
-  }
-
-  showProgress(percentage: number): void {
-    if (!this.progressBar) {
-      return;
-    }
-
-    this.progressBar.update(percentage / 100);
-  }
-
-  disableProgress(): void {
-    if (!this.progressBar) {
-      return;
-    }
-
-    // avoid empty line
-    if (!this.progressBar.complete) {
-      this.progressBar.terminate();
-    }
-
-    delete this.progressBar;
   }
 
   colorizeJson(json: unknown): string {
@@ -160,4 +123,4 @@ class Logger {
   }
 }
 
-export const logger = new Logger();
+export const log = new Logger();
