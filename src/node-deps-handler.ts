@@ -13,13 +13,10 @@
 
 import * as fs from 'fs';
 import path from 'path';
-import { execFile } from 'child_process';
 import { logger } from './log.js';
 import type { Config } from './config.js';
-import { promisify } from 'util';
 import { pruneNodeModules } from './node-deps-pruner.js';
-
-const execFileAsync = promisify(execFile);
+import { execa } from 'execa';
 
 interface NpmListOutput {
   name: string;
@@ -49,10 +46,10 @@ export async function stageAppNodeModules(config: Config): Promise<void> {
   );
 
   logger.debug(`Run npm install..`);
-  await execFileAsync('npm.cmd', ['install', '.', '--no-bin-links'], {
+  const { stdout } = await execa('npm.cmd', ['install', '.', '--no-bin-links'], {
     cwd: config.appNodeModulesStagingFolder,
-    shell: true,
   });
+  logger.debug(stdout);
 
   logger.debug('Clean-lean node_modules..');
   await pruneNodeModules(config);
@@ -71,24 +68,23 @@ async function getTopLevelNpmModulesExternalDependencies(config: Config): Promis
     if (!packageLockFileExists) {
       // if package-lock.json doesn't exist, create it using npm
       logger.debug('Run "npm install --package-lock-only [...]"');
-      await execFileAsync(
+      const { stdout } = await execa(
         'npm.cmd',
         ['install', '--package-lock-only', '--omit=dev', '--omit=peer', '--omit=optional'],
         {
           cwd: config.appPackagePath,
-          shell: true,
         },
       );
+      logger.debug(stdout);
     }
 
     // use package-lock-only to find all the prod dependencies of the app
     logger.debug('Run "npm ls --package-lock-only [...]"');
-    const { stdout: npmLsJsonOutput } = await execFileAsync(
+    const { stdout: npmLsJsonOutput } = await execa(
       'npm.cmd',
       ['ls', '--package-lock-only', '--omit=dev', '--omit=peer', '--omit=optional', '--depth=0', '--json', '--silent'],
       {
         cwd: config.appPackagePath,
-        shell: true,
       },
     );
 

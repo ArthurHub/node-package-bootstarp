@@ -73,7 +73,6 @@ describe('configure', () => {
     expect(config.appPackageJsonFile).toEqual('package.json');
     expect(config.targetPlatform).toEqual('win');
     expect(config.outputFilePath).toEqual('out\\test-app.exe');
-    expect(config.clean).toBeFalsy();
     expect(config.debug).toBeFalsy();
     expect(config.debugPkg).toBeFalsy();
   });
@@ -99,7 +98,6 @@ describe('configure', () => {
     expect(config.appPackageJsonFile).toEqual('other\\package.json');
     expect(config.targetPlatform).toEqual('other-mac');
     expect(config.outputFilePath).toEqual('other-out\\other-bla-app.exe');
-    expect(config.clean).toBeTruthy();
     expect(config.debug).toBeTruthy();
     expect(config.debugPkg).toBeTruthy();
   });
@@ -176,11 +174,13 @@ describe('configure', () => {
       debug: false,
       debugPkg: false,
       clean: false,
+      stageFolder: '.packseb-cache',
     });
 
     expect(vol.existsSync('out')).toBeTruthy();
     expect(vol.existsSync('.packseb-cache')).toBeTruthy();
     expect(vol.existsSync('.packseb-cache\\app_sources')).toBeTruthy();
     expect(vol.existsSync('.packseb-cache\\app_node_modules')).toBeTruthy();
+    expect(vol.existsSync('.packseb-cache\\bootstrap')).toBeTruthy();
   });
 });

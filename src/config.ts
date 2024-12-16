@@ -12,9 +12,11 @@
 // ArthurHub, 2024
 
 import * as fs from 'fs';
+import { tmpdir } from 'os';
 import path from 'path';
 import { logger, pc } from './log.js';
 import { glob } from 'glob';
+import { fileURLToPath } from 'url';
 
 export interface CLIOptions {
   sources?: string[];
@@ -25,6 +27,7 @@ export interface CLIOptions {
   depAdd?: string[];
   depExclude?: string[];
   depOverride?: string[];
+  stageFolder?: string;
   debug: boolean;
   debugPkg: boolean;
   clean: boolean;
@@ -41,7 +44,6 @@ export class Config {
     readonly targetPlatform: string,
     readonly debug: boolean,
     readonly debugPkg: boolean,
-    readonly clean: boolean,
   ) {}
 
   get appPackageJsonFile(): string {
@@ -58,6 +60,18 @@ export class Config {
 
   get appNodeModulesInnerStagingFolder(): string {
     return path.join(this.stagingFolder, 'app_node_modules', 'node_modules');
+  }
+
+  get bootstrapLibFile(): string {
+    return path.join(path.dirname(fileURLToPath(import.meta.url)), '../lib/bootstrap.cjs');
+  }
+
+  get bootstrapStageFolder(): string {
+    return path.join(this.stagingFolder, 'bootstrap');
+  }
+
+  get bootstrapStageFile(): string {
+    return path.join(this.bootstrapStageFolder, 'bootstrap.cjs');
   }
 }
 
@@ -110,17 +124,18 @@ ${pc.cyan('options:')} ${logger.colorizeJson(options)}`);
   // configure the name of the executable output file
   const outputFilePath = path.join(options.output, `${appName}.exe`);
 
+  const stagingFolder = options.stageFolder ?? path.join(tmpdir(), '.packseb-staging');
+
   const config = new Config(
     appName,
     appPackageDir,
     appSources,
     fullAppMain,
-    '.packseb-cache',
+    stagingFolder,
     outputFilePath,
     options.target,
     options.debug,
     options.debugPkg,
-    options.clean,
   );
 
   if (options.debug) {
@@ -146,5 +161,8 @@ async function createFolders(config: Config, outputFolder: string, clean: boolea
   }
   if (!fs.existsSync(config.appNodeModulesStagingFolder)) {
     await fs.promises.mkdir(config.appNodeModulesStagingFolder, { recursive: true });
+  }
+  if (!fs.existsSync(config.bootstrapStageFolder)) {
+    await fs.promises.mkdir(config.bootstrapStageFolder, { recursive: true });
   }
 }

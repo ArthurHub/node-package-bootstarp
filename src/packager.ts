@@ -14,14 +14,14 @@
 import { logger, pc } from './log.js';
 import type { Config } from './config.js';
 import * as fs from 'fs';
-import { fileURLToPath } from 'url';
-import { basename, dirname, join } from 'path';
+import { basename, join } from 'path';
 import archiver from 'archiver';
 import { exec } from '@yao-pkg/pkg';
 import { stageNodeExecutable } from './node-exec-handler.js';
 import { stageAppNodeModules } from './node-deps-handler.js';
 import { stageAppSources } from './app-sources-handler.js';
 import { randomUUID } from 'crypto';
+import { stageBootstrapApp } from './bootstrap-app-handler.js';
 
 export async function pack(config: Config): Promise<void> {
   try {
@@ -42,11 +42,13 @@ export async function pack(config: Config): Promise<void> {
     logger.info('Gen metadata json assets..');
     await genMetadataJsonAsset(config);
 
+    logger.info(`Stage bootstrap node app..`);
+    await stageBootstrapApp(config);
+
     logger.info(`Create bootstrap node executable..`);
     await pkgBootstrapAndAssetsIntoExecutable(config);
 
     logger.info(`${pc.greenBright(`SUCCESS`)} (${config.outputFilePath})`);
-    await cleanStagingSafe(config);
   } catch (error) {
     logger.error(error, `Failed to package app into single executable`);
   }
@@ -57,13 +59,13 @@ export async function pack(config: Config): Promise<void> {
  */
 async function archiveAppIntoAssets(config: Config): Promise<void> {
   logger.debug('Archive node executable asset..');
-  await archiveFile(join(config.stagingFolder, 'node.exe'), join(config.stagingFolder, 'node.zip'));
+  await archiveFile(join(config.stagingFolder, 'node.exe'), join(config.bootstrapStageFolder, 'node.zip'));
 
   logger.debug('Archive app sources asset..');
-  await archiveFolder(config.appSourcesStagingFolder, join(config.stagingFolder, 'app_sources.zip'));
+  await archiveFolder(config.appSourcesStagingFolder, join(config.bootstrapStageFolder, 'app_sources.zip'));
 
   logger.debug('Archive node modules asset..');
-  await archiveFolder(config.appNodeModulesInnerStagingFolder, join(config.stagingFolder, 'node_modules.zip'));
+  await archiveFolder(config.appNodeModulesInnerStagingFolder, join(config.bootstrapStageFolder, 'node_modules.zip'));
 }
 
 /**
@@ -77,34 +79,19 @@ async function genMetadataJsonAsset(config: Config): Promise<void> {
     main: config.appMain,
     target: config.targetPlatform,
   };
-  await fs.promises.writeFile(join(config.stagingFolder, 'metadata.json'), JSON.stringify(metadata, null, 2));
+  await fs.promises.writeFile(join(config.bootstrapStageFolder, 'metadata.json'), JSON.stringify(metadata, null, 2));
 }
 
 /**
  * Package using "pkg" the node executable and the 3 assets into a single executable.
  */
 export async function pkgBootstrapAndAssetsIntoExecutable(config: Config): Promise<void> {
-  const bootstrapFileName = 'bootstrap.cjs';
-  const bootstrapSrc = join(dirname(fileURLToPath(import.meta.url)), '../lib/', bootstrapFileName);
-  const bootstrapStage = join(config.stagingFolder, bootstrapFileName);
-  fs.copyFileSync(bootstrapSrc, bootstrapStage);
-
-  logger.debug(`exec pkg on "${bootstrapStage}"..`);
-  const args = [bootstrapStage, '--target', config.targetPlatform, '--output', config.outputFilePath];
+  logger.debug(`exec pkg on "${config.bootstrapStageFile}"..`);
+  const args = [config.bootstrapStageFile, '--target', config.targetPlatform, '--output', config.outputFilePath];
   if (config.debugPkg) {
     args.push('--debug');
   }
   await exec(args);
-}
-
-async function cleanStagingSafe(config: Config): Promise<void> {
-  try {
-    if (config.clean) {
-      await fs.promises.rmdir(config.stagingFolder, { recursive: true });
-    }
-  } catch (err) {
-    logger.warn(`Failed to clean staging folder "${config.stagingFolder}: ${err}`);
-  }
 }
 
 async function archiveFile(file: string, zipFile: string): Promise<void> {

@@ -22,7 +22,8 @@ import { randomBytes } from 'crypto';
 
 describe('E2E Test for basic-test-app', () => {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const outputTempFolder = path.join(os.tmpdir(), randomBytes(16).toString('hex'));
+  const stageTempFolder = path.join(os.tmpdir(), randomBytes(16).toString('hex'));
+  const outputTempFolder = path.join(stageTempFolder, 'out');
 
   afterAll(async () => {
     await fs.promises.rm(outputTempFolder, { recursive: true, force: true });
@@ -40,7 +41,7 @@ describe('E2E Test for basic-test-app', () => {
     expect(fs.existsSync(outputFilePath)).toBe(true);
     expect(pack_stdout).toContain(pc.greenBright('SUCCESS'));
 
-    const { stdout: run_stdout } = await execa(outputFilePath, ['--seb-path', path.join(outputTempFolder, 'seb-out')]);
+    const { stdout: run_stdout } = await execa(outputFilePath, ['--seb-path', path.join(stageTempFolder, 'seb-app')]);
     expect(run_stdout).toContain(pc.red('Hello'));
     expect(run_stdout).toContain('world!');
   }, 30_000); // 30 seconds timeout

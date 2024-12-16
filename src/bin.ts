@@ -46,9 +46,10 @@ async function main(): Promise<void> {
         '--dep-override [dependencies...]',
         'Override dependencies to ONLY use specified dependencies instead of detected in app package.json',
       )
+      .option('--stage-folder', 'The folder to use for staging/caching (default: os.tmpdir)')
       .option('-d, --debug', 'Show debug information', false)
       .option('--debug-pkg', 'Show debug information from pkg execution', false)
-      .option('-c, --clean', 'Clean staging/cache folder before and after packaging', false)
+      .option('-c, --clean', 'Clean staging/cache folder before starting', false)
       .action(async (appPackage: string, options: CLIOptions) => {
         const config = await configure(appPackage, options);
         await pack(config);
