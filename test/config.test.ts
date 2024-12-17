@@ -71,6 +71,7 @@ describe('configure', () => {
     expect(config.appSources).toEqual(['src\\index.js']);
     expect(config.appPackagePath).toEqual('.');
     expect(config.appPackageJsonFile).toEqual('package.json');
+    expect(config.appCommonAncestorPath).toEqual('\\virtual\\my-app');
     expect(config.targetPlatform).toEqual('win');
     expect(config.outputFilePath).toEqual('out\\test-app.exe');
     expect(config.debug).toBeFalsy();
@@ -96,10 +97,32 @@ describe('configure', () => {
     expect(config.appSources).toEqual(['other\\bla\\code.js', 'other\\util.js']);
     expect(config.appPackagePath).toEqual('other');
     expect(config.appPackageJsonFile).toEqual('other\\package.json');
+    expect(config.appCommonAncestorPath).toEqual('\\virtual\\my-app\\other');
     expect(config.targetPlatform).toEqual('other-mac');
     expect(config.outputFilePath).toEqual('other-out\\other-bla-app.exe');
     expect(config.debug).toBeTruthy();
     expect(config.debugPkg).toBeTruthy();
+  });
+
+  it('should configure common ancestor path with complex paths', async () => {
+    mockFileSystem(['other\\bla\\code.js', 'other\\util.js', '..\\external\\app.js'], undefined, 'other/');
+
+    const config = await configure('other', {
+      sources: ['other/bla/**/*.js'],
+      main: 'bla/code.js',
+      name: 'other-bla-app',
+      output: 'other-out',
+      target: 'other-mac',
+      debug: true,
+      debugPkg: true,
+      clean: true,
+    });
+
+    expect(config.appName).toBe('other-bla-app');
+    expect(config.appMain).toBe('other\\bla\\code.js');
+    expect(config.appPackagePath).toEqual('other');
+    expect(config.appPackageJsonFile).toEqual('other\\package.json');
+    expect(config.appCommonAncestorPath).toEqual('\\virtual');
   });
 
   it('should configure with valid inputs', async () => {

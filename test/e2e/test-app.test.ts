@@ -15,7 +15,7 @@ import { describe, it, expect, afterAll } from 'vitest';
 import * as fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { execa } from 'execa';
+import { execa, ExecaError } from 'execa';
 import { fileURLToPath } from 'url';
 import { pc } from '../../src/log.js';
 import { randomBytes } from 'crypto';
@@ -25,14 +25,14 @@ describe('E2E Test', () => {
   const tempFolder = path.join(os.tmpdir(), 'seb-test', randomBytes(16).toString('hex'));
 
   afterAll(async () => {
-    // await fs.promises.rm(tempFolder, { recursive: true, force: true });
+    await fs.promises.rm(tempFolder, { recursive: true, force: true });
   });
 
   it('succeed for basic test app', async () => {
     const stageTempFolder = path.join(tempFolder, 'basic');
     const outputTempFolder = path.join(stageTempFolder, 'out');
 
-    const pack_stdout = await runPackageBin('test/basic-test-app', stageTempFolder, outputTempFolder);
+    const pack_stdout = await runPackageBin('test', 'test-apps/basic', stageTempFolder, outputTempFolder);
 
     const outputFilePath = path.join(outputTempFolder, `basic-test-app.exe`);
     expect(fs.existsSync(outputFilePath)).toBe(true);
@@ -48,12 +48,13 @@ describe('E2E Test', () => {
     const outputTempFolder = path.join(stageTempFolder, 'out');
 
     const pack_stdout = await runPackageBin(
-      'test/complex-test-app',
+      'test/test-apps/complex',
+      '.',
       stageTempFolder,
       outputTempFolder,
       '--sources',
-      'test/complex-test-app/**/*.{js,cjs,mjs,json}',
-      'test/other-package/**/*.{js,cjs,mjs,json}',
+      '**/*.{js,cjs,mjs,json}',
+      '../../other-package/**/*.{js,cjs,mjs,json}',
     );
 
     const outputFilePath = path.join(outputTempFolder, `complex-test-app.exe`);
@@ -66,34 +67,53 @@ describe('E2E Test', () => {
   }, 50_000);
 
   async function runPackageBin(
+    cwd: string,
     appFolder: string,
     stageTempFolder: string,
     outputTempFolder: string,
     ...moreArgs: string[]
   ): Promise<string> {
-    const { stdout, stderr } = await execa('node', [
-      path.join(__dirname, '../../dist/bin.js'),
-      appFolder,
-      '--stage-folder',
-      stageTempFolder,
-      '--output',
-      outputTempFolder,
-      '--debug',
-      ...moreArgs,
-    ]);
-    console.log('--stdout--');
-    console.log(stdout);
-    console.log('--stderr--');
-    console.log(stderr);
-    return stdout;
+    try {
+      const { stdout, stderr } = await execa(
+        'node',
+        [
+          path.join(__dirname, '../../dist/bin.js'),
+          appFolder,
+          '--stage-folder',
+          stageTempFolder,
+          '--output',
+          outputTempFolder,
+          '--debug',
+          ...moreArgs,
+        ],
+        {
+          cwd: cwd,
+        },
+      );
+      printStdOutErr(stdout, stderr);
+      return stdout;
+    } catch (error) {
+      if (error instanceof ExecaError) {
+        printStdOutErr(error.stdout, error.stderr);
+      }
+      throw error;
+    }
   }
 
   async function runBootrapApp(stageTempFolder: string, outputFilePath: string): Promise<string> {
     const { stdout, stderr } = await execa(outputFilePath, ['--seb-path', path.join(stageTempFolder, 'seb-app')]);
-    console.log('--stdout--');
-    console.log(stdout);
-    console.log('--stderr--');
-    console.log(stderr);
+    printStdOutErr(stdout, stderr);
     return stdout;
+  }
+
+  function printStdOutErr(stdout?: string, stderr?: string): void {
+    if (stdout) {
+      console.log('--stdout--');
+      console.log(stdout);
+    }
+    if (stderr) {
+      console.log('--stderr--');
+      console.log(stderr);
+    }
   }
 });

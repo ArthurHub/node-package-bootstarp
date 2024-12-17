@@ -39,6 +39,7 @@ export class Config {
     readonly appPackagePath: string,
     readonly appSources: string[],
     readonly appMain: string,
+    readonly appCommonAncestorPath: string,
     readonly stagingFolder: string,
     readonly outputFilePath: string,
     readonly targetPlatform: string,
@@ -121,6 +122,9 @@ ${pc.cyan('options:')} ${log.colorizeJson(options)}`);
     throw new Error(`Main entry point "${fullAppMain}" was not found in sources, misconfigured main or sources glob?`);
   }
 
+  // get common ancestor directory for all sources to normalize staging paths
+  const commonAncestorPath = getCommonAncestor([appPackageDir, fullAppMain, ...appSources]);
+
   // configure the name of the executable output file
   const outputFilePath = path.join(options.output, `${appName}.exe`);
 
@@ -131,6 +135,7 @@ ${pc.cyan('options:')} ${log.colorizeJson(options)}`);
     appPackageDir,
     appSources,
     fullAppMain,
+    commonAncestorPath,
     stagingFolder,
     outputFilePath,
     options.target,
@@ -144,6 +149,33 @@ ${pc.cyan('options:')} ${log.colorizeJson(options)}`);
 
   await createFolders(config, options.output, options.clean);
   return config;
+}
+
+/**
+ * Given an array of relative paths with possible parent directory references,
+ * this function normalizes them and returns finds their common ancestor directory.
+ *
+ * @param relativePaths Array of relative paths with possible ".." references.
+ */
+export function getCommonAncestor(relativePaths: string[]): string {
+  const absolutePaths = relativePaths.map((relativePath) => path.resolve(relativePath));
+
+  const commonAncestor = absolutePaths.reduce((commonParts, currentPath) => {
+    const currentParts = currentPath.split(path.sep);
+    const minLength = Math.min(commonParts.length, currentParts.length);
+    const newCommonParts = [];
+    for (let i = 0; i < minLength; i++) {
+      const commonPart = commonParts[i];
+      if (commonPart != undefined && commonParts[i] === currentParts[i]) {
+        newCommonParts.push(commonPart);
+      } else {
+        break;
+      }
+    }
+    return newCommonParts;
+  }, (absolutePaths[0] ?? '').split(path.sep));
+
+  return commonAncestor.join(path.sep);
 }
 
 async function createFolders(config: Config, outputFolder: string, clean: boolean): Promise<void> {

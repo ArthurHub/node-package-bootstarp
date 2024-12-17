@@ -34,7 +34,6 @@ export async function stageBootstrapApp(config: Config): Promise<void> {
   const packageJson = {
     name: `${config.appName}-seb`,
     dependencies: {
-      commander: bootstrapLibPackgeJson.dependencies['commander'],
       decompress: bootstrapLibPackgeJson.dependencies['decompress'],
     },
   };

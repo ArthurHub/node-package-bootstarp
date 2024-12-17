@@ -14,12 +14,11 @@
 import { log, pc } from './log.js';
 import type { Config } from './config.js';
 import * as fs from 'fs';
-import { basename, join } from 'path';
+import { basename, dirname, join, relative } from 'path';
 import archiver from 'archiver';
 import { exec } from '@yao-pkg/pkg';
 import { stageNodeExecutable } from './node-exec-handler.js';
 import { stageAppNodeModules } from './node-deps-handler.js';
-import { stageAppSources } from './app-sources-handler.js';
 import { randomUUID } from 'crypto';
 import { stageBootstrapApp } from './bootstrap-app-handler.js';
 
@@ -55,6 +54,22 @@ export async function pack(config: Config): Promise<void> {
 }
 
 /**
+ * Copy all app sources to the staging folder preserving the same folder structure.
+ */
+async function stageAppSources(config: Config): Promise<void> {
+  for (const srcFile of config.appSources) {
+    const stagedFilePath = join(config.appSourcesStagingFolder, relative(config.appCommonAncestorPath, srcFile));
+    await fs.promises.mkdir(dirname(stagedFilePath), { recursive: true });
+    await fs.promises.copyFile(srcFile, stagedFilePath);
+  }
+
+  await fs.promises.copyFile(
+    config.appPackageJsonFile,
+    join(config.appSourcesStagingFolder, relative(config.appCommonAncestorPath, config.appPackageJsonFile)),
+  );
+}
+
+/**
  * Create an archive for each of the 3 assets: node executable, app sources, and node_modules.
  */
 async function archiveAppIntoAssets(config: Config): Promise<void> {
@@ -76,7 +91,7 @@ async function genMetadataJsonAsset(config: Config): Promise<void> {
     name: config.appName,
     debug: config.debug,
     uuid: randomUUID(),
-    main: config.appMain,
+    main: relative(config.appCommonAncestorPath, config.appMain),
     target: config.targetPlatform,
   };
   await fs.promises.writeFile(join(config.bootstrapStageFolder, 'metadata.json'), JSON.stringify(metadata, null, 2));

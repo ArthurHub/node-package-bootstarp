@@ -27,9 +27,6 @@ dist/
 build/
 out/
 
-# IDEs and editors
-.vscode/
-
 # MacOS
 .DS_Store
 
