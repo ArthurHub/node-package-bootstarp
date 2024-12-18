@@ -22,8 +22,15 @@ import { fileURLToPath } from 'url';
  * Stage the bootstrap js file and install it's node dependencies.
  */
 export async function stageBootstrapApp(config: Config): Promise<void> {
-  log.debug(`Stage bootstrap js file "${config.bootstrapStageFile}"..`);
-  await fs.promises.copyFile(config.bootstrapLibFile, config.bootstrapStageFile);
+  log.debug(`Stage bootstrap js file "${config.bootstrapStageFolder}"..`);
+  await fs.promises.copyFile(
+    join(config.bootstrapLibFolder, 'bootstrap.cjs'),
+    join(config.bootstrapStageFolder, 'bootstrap.cjs'),
+  );
+  await fs.promises.copyFile(
+    join(config.bootstrapLibFolder, 'bootstrap-main.cjs'),
+    join(config.bootstrapStageFolder, 'bootstrap-main.cjs'),
+  );
 
   // get bootstrap dependencies versions
   const bootstrapLibPackgeJson = JSON.parse(

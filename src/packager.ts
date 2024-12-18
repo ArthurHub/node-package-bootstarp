@@ -101,8 +101,9 @@ async function genMetadataJsonAsset(config: Config): Promise<void> {
  * Package using "pkg" the node executable and the 3 assets into a single executable.
  */
 export async function pkgBootstrapAndAssetsIntoExecutable(config: Config): Promise<void> {
-  log.debug(`exec pkg on "${config.bootstrapStageFile}"..`);
-  const args = [config.bootstrapStageFile, '--target', config.targetPlatform, '--output', config.outputFilePath];
+  const bootstrapStageFile = join(config.bootstrapStageFolder, 'bootstrap-main.cjs');
+  log.debug(`exec pkg on "${bootstrapStageFile}"..`);
+  const args = [bootstrapStageFile, '--target', config.targetPlatform, '--output', config.outputFilePath];
   if (config.debugPkg) {
     args.push('--debug');
   }

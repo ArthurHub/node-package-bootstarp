@@ -63,16 +63,12 @@ export class Config {
     return path.join(this.stagingFolder, 'app_node_modules', 'node_modules');
   }
 
-  get bootstrapLibFile(): string {
-    return path.join(path.dirname(fileURLToPath(import.meta.url)), '../lib/bootstrap.cjs');
+  get bootstrapLibFolder(): string {
+    return path.join(path.dirname(fileURLToPath(import.meta.url)), '../lib');
   }
 
   get bootstrapStageFolder(): string {
     return path.join(this.stagingFolder, 'bootstrap');
-  }
-
-  get bootstrapStageFile(): string {
-    return path.join(this.bootstrapStageFolder, 'bootstrap.cjs');
   }
 }
 
